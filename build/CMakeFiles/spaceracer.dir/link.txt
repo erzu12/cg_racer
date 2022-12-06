@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/spaceracer.dir/spaceracer.c.o -o spaceracer  extern/glad/libglad.a extern/glfw/src/libglfw3.a hfg/libhfg.a extern/glad/libglad.a extern/glfw/src/libglfw3.a /usr/lib/librt.a -lm -ldl /usr/lib/libX11.so hfg/extern/stb/libstb.a 

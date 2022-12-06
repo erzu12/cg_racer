@@ -1,2 +1,0 @@
-/usr/bin/ar qc libhfg.a 
-/usr/bin/ranlib libhfg.a
