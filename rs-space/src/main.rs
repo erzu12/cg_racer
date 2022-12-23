@@ -4,7 +4,7 @@ extern crate glium;
 pub mod rfg;
 
 use rfg::graphics2d::*;
-use rfg::math2d::Vec2;
+use rfg::math2d::{ Vec2, Mat3 };
 
 fn main() {
     #[allow(unused_imports)]
@@ -15,53 +15,60 @@ fn main() {
     let cb = glutin::ContextBuilder::new();
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 
-    #[derive(Copy, Clone)]
-    struct Vertex {
-        aPos: [f32; 2],
-    }
+    //#[derive(Copy, Clone)]
+    //struct Vertex {
+        //aPos: [f32; 2],
+    //}
 
-    implement_vertex!(Vertex, aPos);
+    //implement_vertex!(Vertex, aPos);
 
-    let vertex1 = Vertex { aPos: [-0.5, -0.5] };
-    let vertex2 = Vertex { aPos: [ 0.0,  0.5] };
-    let vertex3 = Vertex { aPos: [ 0.5, -0.25] };
-    let shape = vec![vertex1, vertex2, vertex3];
+    //let vertex1 = Vertex { aPos: [-0.5, -0.5] };
+    //let vertex2 = Vertex { aPos: [ 0.0,  0.5] };
+    //let vertex3 = Vertex { aPos: [ 0.5, -0.25] };
+    //let shape = vec![vertex1, vertex2, vertex3];
 
-    let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
-    let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+    //let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
+    //let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
-    let program = load_and_compile_shaders(&display, "assets/shader.vert", "assets/shader.frag");
+    //let program = load_and_compile_shaders(&display, "assets/shader.vert", "assets/shader.frag");
 
-    //let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
+    ////let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
     
-    let uniforms = uniform! {
-        transform: [
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0f32],
-        ],
-        view: [
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0f32],
-        ],
-        col: [1.0, 0.0, 0.0f32] 
-    };
+    //let uniforms = uniform! {
+        //transform: [
+            //[1.0, 0.0, 0.0],
+            //[0.0, 1.0, 0.0],
+            //[0.0, 0.0, 1.0f32],
+        //],
+        //view: [
+            //[1.0, 0.0, 0.0],
+            //[0.0, 1.0, 0.0],
+            //[0.0, 0.0, 1.0f32],
+        //],
+        //col: [1.0, 0.0, 0.0f32] 
+    //};
 
-    let a = Vec2 {x: 2.0, y: 1.0};
-    let b = Vec2 {x: 1.0, y: 1.0};
+    //let a = Vec2 {x: 2.0, y: 1.0};
+    //let b = Vec2 {x: 1.0, y: 1.0};
+
+    let mat = Mat3::index();
+
+    //let x = mat[1][1];
+
+    //let mut c = a * 0.1;
+    //let d = a * b;
+    //c = a - b;
+    ////d = a;
+    
+    let rect = Rectangle::new(&display);
 
 
-    let mut c = a * 0.1;
-    let d = a * b;
-    c = a - b;
-
-
-    println!("a - b: {:?}", a - b);
+    //println!("a - b: {:?}", a - b);
 
     event_loop.run(move |event, _, control_flow| {
         let next_frame_time = std::time::Instant::now() +
             std::time::Duration::from_nanos(16_666_667);
+
         *control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time);
 
         match event {
@@ -80,10 +87,12 @@ fn main() {
             _ => return,
         }
 
+        println!("draw");
         let mut target = display.draw();
         target.clear_color(0.1, 0.1, 0.1, 1.0);
-        target.draw(&vertex_buffer, &indices, &program, &uniforms,
-                    &Default::default()).unwrap();
+        //target.draw(&vertex_buffer, &indices, &program, &uniforms,
+                    //&Default::default()).unwrap();
+        rect.draw(&mut target, mat);
         target.finish().unwrap();
     });
 }
