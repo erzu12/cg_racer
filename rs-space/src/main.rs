@@ -61,7 +61,8 @@ fn main() {
     //c = a - b;
     ////d = a;
     
-    let rect = Rectangle::new(&display);
+    //let rect = Rectangle::new(&display);
+    let image = Image::new(&display, "assets/invasion.png");
 
 
     //println!("a - b: {:?}", a - b);
@@ -92,7 +93,7 @@ fn main() {
         target.clear_color(0.1, 0.1, 0.1, 1.0);
         //target.draw(&vertex_buffer, &indices, &program, &uniforms,
                     //&Default::default()).unwrap();
-        rect.draw(&mut target, mat);
+        image.draw(&mut target, mat);
         target.finish().unwrap();
     });
 }

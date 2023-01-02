@@ -77,7 +77,7 @@ impl Rectangle {
     }
 }
 
-fn load_texture(display: &glium::Display, path: String) -> glium::texture::SrgbTexture2d {
+fn load_texture(display: &glium::Display, path: &str) -> glium::texture::SrgbTexture2d {
     let image = image::open(path).unwrap().into_rgba8();
     let image_dimensions = image.dimensions();
     let image = glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), image_dimensions);
@@ -92,17 +92,18 @@ pub struct Image {
 }
 
 impl Image {
-    pub fn new(display: &glium::Display, path: String) -> Image {
+    pub fn new(display: &glium::Display, path: &str) -> Image {
         let texture = load_texture(display, path);
         let (x, y) = texture.dimensions();
 
         let mut rect = Rectangle::new(display);
+        rect.shader = load_and_compile_shaders(&display, "src/rfg/assets/image.vert", "src/rfg/assets/image.frag");
 
         if x > y {
-            rect.transform.scale.y = (y / x) as f32;
-        }
-        else {
-            rect.transform.scale.x = (x / y) as f32;
+            rect.transform.scale.y = y as f32 / x as f32;
+        }                                    
+        else {                               
+            rect.transform.scale.x = x as f32 / y as f32;
         }
 
         Image {
@@ -112,6 +113,65 @@ impl Image {
     }
 
     pub fn draw(&self, target: &mut glium::Frame, view_mat: Mat3) {
+        let mut transform = Mat3::scaling(self.rect.transform.scale);
+        transform = transform.rotate(self.rect.transform.rot);
+        transform = transform.translate(self.rect.transform.pos);
 
+
+        let uniforms = uniform! {
+            transform: transform.data(),
+            view: view_mat.data(),
+            image: &self.texture,
+            opacity: 1.0f32,
+        };
+
+
+        target.draw(&self.rect.verts, &self.rect.inds, &self.rect.shader, &uniforms,
+                    &Default::default()).unwrap();
+    }
+}
+
+fn struct Particle {
+    vel: Vec2,
+    lifeTime: f32
+    start: f32
+    image: image,
+}
+
+pub struct ParticleSys  {
+    particles: Vec<Particle>,
+    pos: Vec2,
+    initalVel: Vec2,
+    initialSize: f32,
+    randAngle: f32,
+    randSpeed: f32,
+    particleCount: u32,
+    lifetime: f32,
+    initialOpacity: f32,
+    growth: f32,
+    fade: f32,
+    image: Image,
+}
+
+impl ParticleSys {
+    pub fn new(pos: Vec2, initalVel: Vec2, initialSize: f32, lifetime: f32 image: Image) -> self {
+        Self {
+            pos: pos,
+            initalVel: initalVel,
+            initialSize: initialSize,
+            randAngle: 0,
+            randSpeed: 0,
+            particleCount: 0.0,
+            lifetime: lifetime,
+            initialOpacity: 1.0,
+            growth: 0.0,
+            fade: 0.0,
+            image: image,
+        }
+    }
+
+    pub fn set_random(&mut self, randSpeed: f32, randAngle: f32) {
+        self.randSpeed = randSpeed;
+        self.randAngle = randAngle;
     }
 }
