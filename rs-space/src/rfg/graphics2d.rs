@@ -1,6 +1,8 @@
 use super::math2d::{ Vec2, Mat3 };
 use crate::glium::Surface;
 
+use std::io::Cursor;
+
 pub struct Transform {
     pub pos: Vec2,
     pub scale: Vec2,
@@ -75,3 +77,41 @@ impl Rectangle {
     }
 }
 
+fn load_texture(display: &glium::Display, path: String) -> glium::texture::SrgbTexture2d {
+    let image = image::open(path).unwrap().into_rgba8();
+    let image_dimensions = image.dimensions();
+    let image = glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), image_dimensions);
+    let texture = glium::texture::SrgbTexture2d::new(display, image).unwrap();
+    texture
+
+}
+
+pub struct Image {
+    rect: Rectangle,
+    texture: glium::texture::SrgbTexture2d,
+}
+
+impl Image {
+    pub fn new(display: &glium::Display, path: String) -> Image {
+        let texture = load_texture(display, path);
+        let (x, y) = texture.dimensions();
+
+        let mut rect = Rectangle::new(display);
+
+        if x > y {
+            rect.transform.scale.y = (y / x) as f32;
+        }
+        else {
+            rect.transform.scale.x = (x / y) as f32;
+        }
+
+        Image {
+            rect: rect,
+            texture: texture
+        }
+    }
+
+    pub fn draw(&self, target: &mut glium::Frame, view_mat: Mat3) {
+
+    }
+}
