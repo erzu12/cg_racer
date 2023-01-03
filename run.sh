@@ -7,5 +7,5 @@ make -C build
 
 printf "\n\n=============================================================================\n\n"
 
-#./build/spaceracer
-mangohud --dlsym build/spaceracer
+./build/spaceracer
+#mangohud --dlsym build/spaceracer

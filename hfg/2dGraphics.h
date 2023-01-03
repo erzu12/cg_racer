@@ -7,6 +7,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
 
 #include <2dMath.h>
 
@@ -23,9 +25,33 @@ typedef struct Rectangle {
 } Rectangle;
 
 typedef struct Image {
-    Rectangle *rect;
+    Rectangle rect;
+    float opacity;
     unsigned int texture;
 } Image;
+
+typedef struct Particle {
+    Vec2 vel;
+    float lifeTime;
+    float start;
+    Image image;
+} Particle;
+
+typedef struct ParticleSys {
+    Particle *particles;
+    Vec2 pos;
+    Vec2 initalVel;
+    float initialSize;
+    float randAngle;
+    float randSpeed;
+    int maxParticles;
+    int particleCount;
+    float maxLifetime;
+    float initialOpacity;
+    float growth;
+    float fade;
+    Image *image;
+} ParticleSys;
 
 typedef struct Line {
     unsigned int VAO;
@@ -129,6 +155,7 @@ Image *newImage(const char *path, GLint colorSpace, GLint internalColorSpace) {
 
     int texWidth, texHeight;
     image->texture = LoadTextureWithSize(path, colorSpace, internalColorSpace, &texWidth, &texHeight);
+    image->opacity = 1.0f;
 
     Rectangle *rect = newRectangle();
     rect->shader = LoadAndCompileShaders("hfg/assets/image.vert", "hfg/assets/image.frag");
@@ -142,14 +169,84 @@ Image *newImage(const char *path, GLint colorSpace, GLint internalColorSpace) {
         rect->transform.scale.x = (float)texWidth / texHeight;
     }
 
-    image->rect = rect;
+    image->rect = *rect;
     return image;
 }
 
 void drawImage(Image *image, float *viewMat) {
+    glUseProgram(image->rect.shader);
+    glUniform1f(glGetUniformLocation(image->rect.shader, "opacity"), image->opacity);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, image->texture);
-    drawRectangle(image->rect, viewMat);
+    drawRectangle(&image->rect, viewMat);
+}
+
+ParticleSys *newParticleSys(int maxParticles, Image *image, Vec2 pos, float initialSize, Vec2 initalVel) {
+    ParticleSys *particleSys = malloc(sizeof(ParticleSys));
+    particleSys->image = image;
+    particleSys->maxParticles = maxParticles;
+    particleSys->particleCount = 0;
+    particleSys->pos = pos;
+    particleSys->initalVel = initalVel;
+    particleSys->initialSize = initialSize;
+    particleSys->randAngle = 0.0f;
+    particleSys->randSpeed = 0.0f;
+    particleSys->initialOpacity = 1.0f;
+    particleSys->growth = 0.0f;
+    particleSys->fade = 0.0f;
+    particleSys->particles = malloc(sizeof(ParticleSys) * maxParticles);
+
+    return particleSys;
+
+}
+
+void spawnParticle(ParticleSys* particleSys, float lifeTime) {
+    //Particle *particle = malloc(sizeof(Particle));
+    
+    if(particleSys->particleCount < particleSys->maxParticles) {
+        Particle particle;
+        particle.image = *particleSys->image;
+        particle.image.rect.transform.pos = particleSys->pos; 
+        particle.image.rect.transform.scale = vec2(particleSys->initialSize, particleSys->initialSize); 
+        float randSpeed = (float)rand()/(float)RAND_MAX  * particleSys->randSpeed * 2 - particleSys->randSpeed;
+        Vec2 vel = vec2Scale(particleSys->initalVel, 1 + randSpeed);
+        float randAngle = (float)rand()/(float)RAND_MAX  * particleSys->randAngle * 2 - particleSys->randAngle;
+        vel = vec2Rot(vel, randAngle);
+        particle.vel = vel;
+        particle.lifeTime = lifeTime;
+        particle.start = glfwGetTime();
+        particleSys->particles[particleSys->particleCount] = particle;
+        particleSys->particleCount++;
+    }
+    else {
+        printf("can't spawn Particle, maxParticles reached\n");
+    }
+
+}
+
+void drawParticleSys(ParticleSys *particleSys, float *viewMat, float deltaTime) {
+    for(int i = 0; i < particleSys->particleCount; i++) {
+        Particle particle = particleSys->particles[i];
+        if(glfwGetTime() - particle.start > particle.lifeTime) {
+            particleSys->particleCount--;
+            if( particleSys->particleCount == 0 ) {
+                break;
+            }
+            particle = particleSys->particles[particleSys->particleCount];
+            particleSys->particles[i] = particle;
+        }
+
+        particleSys->particles[i].image.rect.transform.pos = vec2Add(particle.image.rect.transform.pos, vec2Scale(particle.vel, deltaTime));
+        particleSys->particles[i].image.opacity = particle.image.opacity - particleSys->fade * deltaTime;
+        Vec2 growthVec = vec2(particleSys->growth * deltaTime, particleSys->growth * deltaTime);
+        particleSys->particles[i].image.rect.transform.scale = vec2Add(particle.image.rect.transform.scale, growthVec);
+        drawImage(&particle.image, viewMat);
+    }
+}
+
+void deleteParticleSys(ParticleSys *particleSys) {
+    free(particleSys->particles);
+    free(particleSys);
 }
 
 Line *newLine(Vec2 *points, int pointCount, float thickness) {

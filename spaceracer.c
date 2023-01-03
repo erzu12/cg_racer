@@ -21,6 +21,8 @@ typedef struct Player {
     Vec2 vel;
     float rot;
     float rotVel;
+    ParticleSys rcs[8];
+    ParticleSys *engine;
     Vec2 colCheck[4];
 } Player;
 
@@ -88,6 +90,8 @@ int main()
 
     glEnable( GL_DEBUG_OUTPUT );
     glDebugMessageCallback( openglMessageCallback, 0 );
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     struct CallbackContext *cbc = malloc(sizeof(struct CallbackContext));
 
@@ -130,7 +134,7 @@ int main()
     
     //struct Rectangle *rectangle = newRectangle();
     Image *ship = newImage("assets/ship.png", GL_RGBA, GL_RGBA);
-    ship->rect->transform.scale = vec2Scale(ship->rect->transform.scale, 2.0f);
+    ship->rect.transform.scale = vec2Scale(ship->rect.transform.scale, 2.0f);
     //rectangle->shader = shader;
     //ship->rect->transform.scale = vec2(0.5f, 1.0f);
 
@@ -183,6 +187,15 @@ int main()
 
     //line->transform.scale = vec2(0.01f, 0.01f);
 
+    Image *smoke = newImage("assets/smoke1.png", GL_RGBA, GL_RGBA);
+    Vec2 initalVel = vec2(10.0f, 0.0f);
+    ParticleSys *particleSys = newParticleSys(200, smoke, respawnPoint, 1.0, initalVel);
+    particleSys->randAngle = 0.1f;
+    particleSys->randSpeed = 0.4f;
+    particleSys->growth = 2.0f;
+    particleSys->fade = 1.0f;
+    player->engine = particleSys;
+
     while (!glfwWindowShouldClose(window))
     {
         currentFrame = glfwGetTime();
@@ -191,6 +204,8 @@ int main()
 
         processInput(window);
         updatePlayer(window, player, game);
+        particleSys->pos = vec2Add(player->pos, vec2Rot(vec2(0.0f, -1.0f), player->rot));
+        particleSys->initalVel = vec2Add(player->vel, vec2Rot(vec2(0.0f, -10.0f), player->rot));
 
         bool colliding = false;
         for(int i = 0; i < 4; i++) {
@@ -218,8 +233,8 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        ship->rect->transform.pos = player->pos;
-        ship->rect->transform.rot = player->rot;
+        ship->rect.transform.pos = player->pos;
+        ship->rect.transform.rot = player->rot;
 
         glUseProgram(shader);
         UniformVec3(shader, "col", 1.0, 0.0, 0.0);
@@ -230,9 +245,14 @@ int main()
         drawLine(line2, viewMat);
         drawImage(ship, viewMat);
 
+        //spawnParticle(particleSys, 0.5f);
+        drawParticleSys(player->engine, viewMat, game->deltaTime);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    deleteParticleSys(particleSys);
 
     glfwTerminate();
     return 0;
@@ -249,8 +269,10 @@ void updatePlayer(GLFWwindow *window, Player *player, Game *game) {
     if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) 
         input = vec2Add(input, vec2(-1.0f, 0.0f));
 
-    if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) 
+    if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
         input = vec2Add(input, vec2(0.0f, 2.0f));
+        spawnParticle(player->engine, 1.0);
+    }
 
     float rotInput = 0.0f;
     if(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) 
