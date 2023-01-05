@@ -2,6 +2,8 @@
 extern crate glium;
 extern crate image;
 
+use std::time::{Duration, Instant};
+
 pub mod rfg;
 
 use rfg::graphics2d::*;
@@ -62,7 +64,10 @@ fn main() {
     ////d = a;
     
     //let rect = Rectangle::new(&display);
-    let image = Image::new(&display, "assets/invasion.png");
+    let mut image = Image::new(&display, "assets/invasion.png");
+    //image.new_instance(&display);
+
+    let part_sys = ParticleSys::new(Vec2::newZero(), Vec2::new(1.0, 0.0), 1.0, Duration::from_secs(5), image);
 
 
     //println!("a - b: {:?}", a - b);
@@ -93,7 +98,8 @@ fn main() {
         target.clear_color(0.1, 0.1, 0.1, 1.0);
         //target.draw(&vertex_buffer, &indices, &program, &uniforms,
                     //&Default::default()).unwrap();
-        image.draw(&mut target, mat);
+        //image.draw(&mut target, mat);
+        part_sys.draw();
         target.finish().unwrap();
     });
 }

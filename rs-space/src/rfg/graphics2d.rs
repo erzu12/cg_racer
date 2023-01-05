@@ -99,14 +99,22 @@ fn load_texture(display: &glium::Display, path: &str) -> glium::texture::SrgbTex
 }
 
 pub struct Image {
-    rect: Rectangle,
+    instaces: Vec<Rectangle>,
     texture: glium::texture::SrgbTexture2d,
 }
 
 impl Image {
     pub fn new(display: &glium::Display, path: &str) -> Image {
         let texture = load_texture(display, path);
-        let (x, y) = texture.dimensions();
+
+        Image{
+            instaces: Vec::new(),
+            texture: texture,
+        }
+    }
+
+    pub fn new_instance(&mut self, display: &glium::Display) -> &mut Rectangle {
+        let (x, y) = self.texture.dimensions();
 
         let mut rect = Rectangle::new(display);
         rect.shader = load_and_compile_shaders(
@@ -121,33 +129,36 @@ impl Image {
             rect.transform.scale.x = x as f32 / y as f32;
         }
 
-        Image {
-            rect: rect,
-            texture: texture,
-        }
+        println!("{:?}", rect.transform.scale);
+
+        self.instaces.push(rect);
+        self.instaces.last_mut().unwrap()
+        
     }
 
     pub fn draw(&self, target: &mut glium::Frame, view_mat: Mat3) {
-        let mut transform = Mat3::scaling(self.rect.transform.scale);
-        transform = transform.rotate(self.rect.transform.rot);
-        transform = transform.translate(self.rect.transform.pos);
+        for rect in self.instaces.iter() {
+            let mut transform = Mat3::scaling(rect.transform.scale);
+            transform = transform.rotate(rect.transform.rot);
+            transform = transform.translate(rect.transform.pos);
 
-        let uniforms = uniform! {
-            transform: transform.data(),
-            view: view_mat.data(),
-            image: &self.texture,
-            opacity: 1.0f32,
-        };
+            let uniforms = uniform! {
+                transform: transform.data(),
+                view: view_mat.data(),
+                image: &self.texture,
+                opacity: 1.0f32,
+            };
 
-        target
-            .draw(
-                &self.rect.verts,
-                &self.rect.inds,
-                &self.rect.shader,
-                &uniforms,
-                &Default::default(),
-            )
-            .unwrap();
+            target
+                .draw(
+                    &rect.verts,
+                    &rect.inds,
+                    &rect.shader,
+                    &uniforms,
+                    &Default::default(),
+                )
+                .unwrap();
+        }
     }
 }
 
@@ -155,11 +166,11 @@ pub struct Particle<'a> {
     vel: Vec2,
     lifetime: f32,
     start: Instant,
-    image: &'a Image,
+    rectangle: &'a Rectangle,
 }
 
-pub struct ParticleSys {
-    particles: Vec<Particle>,
+pub struct ParticleSys<'a> {
+    particles: Vec<Particle<'a>>,
     pos: Vec2,
     inital_vel: Vec2,
     initial_size: f32,
@@ -170,16 +181,16 @@ pub struct ParticleSys {
     initial_opacity: f32,
     growth: f32,
     fade: f32,
-    image: &Image,
+    image: Image,
 }
 
-impl ParticleSys {
+impl<'a> ParticleSys<'a> {
     pub fn new(
         pos: Vec2,
         inital_vel: Vec2,
         initial_size: f32,
         lifetime: Duration,
-        image: &Image,
+        image: Image,
     ) -> Self {
 
         ParticleSys {
@@ -203,18 +214,27 @@ impl ParticleSys {
         self.rand_angle = rand_angle;
     }
 
-    pub fn spawnParticle(&self, lifetime: f32) {
+    pub fn spawnParticle(&mut self, display: &glium::Display, lifetime: f32) {
         let mut rng = rand::thread_rng();
         let rand_speed = rng.gen::<f32>() * self.rand_speed * 2.0 - self.rand_speed;
-        let vel = self.inital_vel * rand_speed;
+        let mut vel = self.inital_vel * rand_speed;
         let rand_angle = rng.gen::<f32>() * self.rand_angle * 2.0 - self.rand_angle;
         vel = Vec2::rotate(vel, rand_angle);
+
+        let transform = Transform {
+            pos: self.pos,
+            rot: 0.0,
+            scale: Vec2::new(self.initial_size, self.initial_size),
+        };
+
+        let mut rect = self.image.new_instance(display);
+        rect.transform = transform;
 
         let particle = Particle {
             vel: vel,
             lifetime: lifetime,
             start: Instant::now(),
-            image: &self.image,
+            rectangle: rect,
         };
     }
 }
