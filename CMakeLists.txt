@@ -16,7 +16,7 @@ set_property(TARGET "${PROJECT_NAME}" PROPERTY C_STANDARD 11)
 
 target_link_libraries("${PROJECT_NAME}"
 	glad
-	glfw
+	-lglfw
     hfg
 )
 
