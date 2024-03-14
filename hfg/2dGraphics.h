@@ -63,7 +63,7 @@ typedef struct Line {
 void UniformMat3v(unsigned int shader, const char* name, const GLfloat *val);
 unsigned int LoadAndCompileShaders(const char* vertexPath, const char* fragmentPath);
 
-Rectangle *newRectangle() {
+Rectangle *newRectangle(unsigned int shader) {
     float vertices[] = {
          0.5f,  0.5f,
          0.5f, -0.5f,
@@ -99,6 +99,7 @@ Rectangle *newRectangle() {
     rectangle->transform.pos = vec2zero();
     rectangle->transform.scale = vec2(1.0f, 1.0f);
     rectangle->transform.rot = 0.0f;
+    rectangle->shader = shader;
     return rectangle;
 }
 
@@ -113,8 +114,8 @@ void drawRectangle(struct Rectangle* rectangle, float *viewMat) {
     UniformMat3v(rectangle->shader, "transform", transform);
     UniformMat3v(rectangle->shader, "view", viewMat);
 
-     glBindVertexArray(rectangle->VAO);
-     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(rectangle->VAO);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 unsigned int LoadTextureWithSize(const char *path, GLint colorSpace, GLint internalColorSpace, int *texWidth, int *texHeight) {
@@ -157,8 +158,8 @@ Image *newImage(const char *path, GLint colorSpace, GLint internalColorSpace) {
     image->texture = LoadTextureWithSize(path, colorSpace, internalColorSpace, &texWidth, &texHeight);
     image->opacity = 1.0f;
 
-    Rectangle *rect = newRectangle();
-    rect->shader = LoadAndCompileShaders("hfg/assets/image.vert", "hfg/assets/image.frag");
+    unsigned int shader = LoadAndCompileShaders("hfg/assets/image.vert", "hfg/assets/image.frag");
+    Rectangle *rect = newRectangle(shader);
     glUseProgram(rect->shader);
     glUniform1i(glGetUniformLocation(rect->shader, "image"), 0);
 
@@ -249,11 +250,14 @@ void deleteParticleSys(ParticleSys *particleSys) {
     free(particleSys);
 }
 
-Line *newLine(Vec2 *points, int pointCount, float thickness) {
+Line *newLine(Vec2 *points, int pointCount, float thickness, bool closed) {
 
     int vertCount = 4 * pointCount;
     float *verts = malloc(vertCount * sizeof(float));
     int indCount = 6 * (pointCount - 1);
+    if(closed) {
+        indCount += 6;
+    }
     unsigned int *inds = malloc(indCount * sizeof(int));
 
     Vec2 start = vec2Noramlize(vec2Subtraction(points[1], points[0]));
@@ -291,6 +295,16 @@ Line *newLine(Vec2 *points, int pointCount, float thickness) {
         inds[i * 6 - 2] = i * 2 + 1;
         inds[i * 6 - 1] = i * 2;
     }
+
+    if(closed) {
+        inds[indCount - 6] = 0;
+        inds[indCount - 5] = 1;
+        inds[indCount - 4] = pointCount * 2 - 2;
+        inds[indCount - 3] = 1;
+        inds[indCount - 2] = pointCount * 2 - 1;
+        inds[indCount - 1] = pointCount * 2 - 2;
+    }
+
 
     unsigned int VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
@@ -449,13 +463,31 @@ unsigned int LoadAndCompileShaders(const char* vertexPath, const char* fragmentP
 }
 
 void UniformVec3(unsigned int shader, const char* name, float x, float y, float z) {
-	glUniform3f(glGetUniformLocation(shader, name), x, y, z);
+    glUseProgram(shader);
+    unsigned int pos = glGetUniformLocation(shader, name);
+    if(pos == -1) {
+        printf("ERROR: UniformVec3: %s not found\n", name);
+        return;
+    }
+	glUniform3f(pos, x, y, z);
 }
 void UniformVec3v(unsigned int shader, const char* name, const GLfloat *val) {
-	glUniform3fv(glGetUniformLocation(shader, name), 1, val);
+    glUseProgram(shader);
+    unsigned int pos = glGetUniformLocation(shader, name);
+    if(pos == -1) {
+        printf("ERROR: UniformVec3v: %s not found\n", name);
+        return;
+    }
+	glUniform3fv(pos, 1, val);
 }
 void UniformMat3v(unsigned int shader, const char* name, const GLfloat *val) {
-	glUniformMatrix3fv(glGetUniformLocation(shader, name), 1, GL_TRUE, val);
+    glUseProgram(shader);
+    unsigned int pos = glGetUniformLocation(shader, name);
+    if(pos == -1) {
+        printf("ERROR: UniformMat3v: %s not found\n", name);
+        return;
+    }
+	glUniformMatrix3fv(pos, 1, GL_TRUE, val);
 }
 
 void APIENTRY openglMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)

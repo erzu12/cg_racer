@@ -4,6 +4,7 @@
 #include <2dGraphics.h>
 #include <2dMath.h>
 #include <2dSpline.h>
+#include <2dPhysics.h>
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -11,8 +12,7 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow *window, double posX, double posY);
-Vec2 screenToWorldSpace(Vec2 screenPos, float pixelsPerUnit, Vec2 screenSize);
-Vec2 **loadPathFromSvg(const char* path, int **pointCounts, int *pathCount);
+Vec2 screenToWorldSpace(Vec2 screenPos, float pixelsPerUnit, Vec2 screenSize, Vec2 cameraPos);
 
 
 
@@ -32,15 +32,32 @@ typedef struct Camera {
     float pixelsPerUnit;
 } Camera;
 
-typedef struct Game {
-    float deltaTime;
-} Game;
-
 struct CallbackContext {
     Vec2 mousePos;
     Vec2 screenSize;
     Camera *camera;
 };
+
+typedef struct Game {
+    float deltaTime;
+} Game;
+
+typedef struct Gizmo {
+    Vec2 pos;
+    float angle;
+    float handle1dist;
+    float handle2dist;
+    Rectangle *rect;
+    Rectangle *rectHandle1;
+    Rectangle *rectHandle2;
+} Gizmo;
+
+Gizmo *createGizmo(Vec2 pos, float angle, unsigned int shader, float scale);
+void updateGizmo(Gizmo *gizmo, GLFWwindow *window, struct CallbackContext *cbc, Camera camera);
+void drawGizmo(Gizmo *gizmo, float *viewMat, unsigned int shader);
+
+Vec2 *gizmoArrToPath(Gizmo *gizmo, int gizmoCount, int resolusion);
+
 
 void updatePlayer(GLFWwindow *window, Player *player, Game *game);
 
@@ -63,7 +80,7 @@ int main()
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "GUI", NULL, NULL);
     if (window == NULL)
     {
         printf("Failed to create GLFW window\n");
@@ -95,7 +112,7 @@ int main()
 
     struct CallbackContext *cbc = malloc(sizeof(struct CallbackContext));
 
-    Vec2 respawnPoint = {0.0f, 32.0f};
+    Vec2 respawnPoint = {0.0f, 0.0f};
     float respawnRot = PI / 2;
     Player *player = malloc(sizeof(Player));
     player->pos = respawnPoint;
@@ -135,57 +152,8 @@ int main()
     //struct Rectangle *rectangle = newRectangle();
     Image *ship = newImage("assets/ship.png", GL_RGBA, GL_RGBA);
     ship->rect.transform.scale = vec2Scale(ship->rect.transform.scale, 2.0f);
-    //rectangle->shader = shader;
-    //ship->rect->transform.scale = vec2(0.5f, 1.0f);
-
-    //Image *image = newImage("assets/invasion.png", GL_RGBA, GL_RGBA);
-    //image->rect->transform.scale = vec2Scale(image->rect->transform.scale, 10.0f);
-    
-    int *splinePointsCount;
-    int pathCount;
-    Vec2 **paths = loadPathFromSvg("assets/track1.svg", &splinePointsCount, &pathCount);
-
-    if(pathCount != 2) {
-        printf("error loading map path count %d\n", pathCount);
-        exit(1);
-    }
-
-    Vec2 *splinePoints1 = paths[0];
 
     float mapScale = 30.0f;
-    int splineRes = 40;
-    int pointsCount1 = (splinePointsCount[0] - 1) / 3 * splineRes;
-    Vec2 points1[pointsCount1];
-
-    for(int i  = 0; i < splinePointsCount[0]; i++) { 
-        splinePoints1[i] = screenToWorldSpace(splinePoints1[i], mapScale, vec2(1920, 1080));
-    }
-
-    for(int i  = 0, j = 0; i < splinePointsCount[0] - 1; i += 3, j++) {
-        spline(&points1[j * splineRes], splineRes, splinePoints1[i], splinePoints1[i + 1], splinePoints1[i + 2], splinePoints1[i + 3]);
-    }
-
-    Line *line1 = newLine(points1, pointsCount1, 0.03f);
-    line1->shader = shader;
-
-
-    Vec2 *splinePoints2 = paths[1];
-
-    int pointsCount2 = (splinePointsCount[1] - 1) / 3 * splineRes;
-    Vec2 points2[pointsCount2];
-
-    for(int i  = 0; i < splinePointsCount[1]; i++) { 
-        splinePoints2[i] = screenToWorldSpace(splinePoints2[i], mapScale, vec2(1920, 1080));
-    }
-
-    for(int i  = 0, j = 0; i < splinePointsCount[1] - 1; i += 3, j++) {
-        spline(&points2[j * splineRes], splineRes, splinePoints2[i], splinePoints2[i + 1], splinePoints2[i + 2], splinePoints2[i + 3]);
-    }
-
-    Line *line2 = newLine(points2, pointsCount2, 0.03f);
-    line2->shader = shader;
-
-    //line->transform.scale = vec2(0.01f, 0.01f);
 
     Image *smoke = newImage("assets/smoke1.png", GL_RGBA, GL_RGBA);
     Vec2 initalVel = vec2(10.0f, 0.0f);
@@ -196,35 +164,77 @@ int main()
     particleSys->fade = 1.0f;
     player->engine = particleSys;
 
+
+    //Gizmo *gizmo = createGizmo(vec2(0.0f, 0.0f), 0.0f, shader);
+
+    Gizmo gizmos[4];
+    gizmos[0] = *createGizmo(vec2(0.0f, 5.0f), 0.0f, shader, 3);
+    gizmos[1] = *createGizmo(vec2(-5.0f, 0.0f), PI/2, shader, 3);
+    gizmos[2] = *createGizmo(vec2(0.0f, -5.0f), PI, shader, 3);
+    gizmos[3] = *createGizmo(vec2(5.0f, 0.0f), PI + PI/2, shader, 3);
+
+    
+    bool editMode = true;
+    bool justPressed = false;
+
+
+    Vec2 *path = gizmoArrToPath(gizmos, 4, 40);
+    Line *line = newLine(path, 4 * 40, 6.0f, true);
+
     while (!glfwWindowShouldClose(window))
     {
         currentFrame = glfwGetTime();
         game->deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
-
         processInput(window);
-        updatePlayer(window, player, game);
-        particleSys->pos = vec2Add(player->pos, vec2Rot(vec2(0.0f, -1.0f), player->rot));
-        particleSys->initalVel = vec2Add(player->vel, vec2Rot(vec2(0.0f, -10.0f), player->rot));
 
-        bool colliding = false;
-        for(int i = 0; i < 4; i++) {
-            if(!pointInPath(vec2Add(player->pos, vec2Rot(player->colCheck[i], player->rot)), points1, pointsCount1) ||
-               pointInPath(vec2Add(player->pos, vec2Rot(player->colCheck[i], player->rot)), points2, pointsCount2))
-            {
+        Vec2 viewScale = vec2Scale(camera.aspecRatio, camera.pixelsPerUnit);
+
+        if(glfwGetKey(window, GLFW_KEY_TAB) == GLFW_RELEASE) {
+            justPressed = false;
+        }
+
+        if(editMode) {
+            path = gizmoArrToPath(gizmos, 4, 40);
+            line = newLine(path, 4 * 40, 6.0f, true);
+            line->shader = shader;
+            if(glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS && !justPressed) {
+                editMode = false;
+                justPressed = true;
+            }
+            camera.pos = vec2zero();
+        }
+        else {
+            updatePlayer(window, player, game);
+            particleSys->pos = vec2Add(player->pos, vec2Rot(vec2(0.0f, -1.0f), player->rot));
+            particleSys->initalVel = vec2Add(player->vel, vec2Rot(vec2(0.0f, -10.0f), player->rot));
+
+            bool colliding = false;
+            respawnPoint = gizmos[0].pos;
+
+            if(glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS && !justPressed) {
+                editMode = true;
+                justPressed = true;
                 colliding = true;
             }
-        }
-        if(colliding) {
-            //printf("colliding\n");
-            player->vel = vec2zero();
-            player->pos = respawnPoint;
-            player->rotVel = 0.0f;
-            player->rot = respawnRot;
-        }
 
-        Vec2 viewScale = vec2Scale(camera.aspecRatio, camera.pixelsPerUnit / (1 + vec2Magnitude(player->vel) * 0.010f));
-        camera.pos = vec2Lerp(camera.pos, player->pos, 3.0f * game->deltaTime);
+            if(!pointOnPath(path, 4 * 40 + 1, player->pos, 2.7)) {
+                colliding = true;
+            }
+
+            if(colliding) {
+                //printf("colliding\n");
+                player->vel = vec2zero();
+                player->pos = respawnPoint;
+                player->rotVel = 0.0f;
+                player->rot = respawnRot;
+            }
+            Vec2 viewScale = vec2Scale(camera.aspecRatio, camera.pixelsPerUnit / (1 + vec2Magnitude(player->vel) * 0.010f));
+            camera.pos = vec2Lerp(camera.pos, player->pos, 3.0f * game->deltaTime);
+
+            ship->rect.transform.pos = player->pos;
+            ship->rect.transform.rot = player->rot;
+        }
 
         translationMatrix(vec2Subtraction(vec2zero(), camera.pos), viewMat);
         scaleMat(viewScale, viewMat);
@@ -233,20 +243,25 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        ship->rect.transform.pos = player->pos;
-        ship->rect.transform.rot = player->rot;
+
+        for(int i = 0; i < 4; i++) {
+            updateGizmo(&gizmos[i], window, cbc, camera);
+        }
 
         glUseProgram(shader);
+
+        UniformVec3(shader, "col", 0.3, 0.4, 0.5);
+        drawLine(line, viewMat);
         UniformVec3(shader, "col", 1.0, 0.0, 0.0);
-
-        //drawImage(image, viewMat);
-        //drawRectangle(rectangle, viewMat);
-        drawLine(line1, viewMat);
-        drawLine(line2, viewMat);
-        drawImage(ship, viewMat);
-
-        //spawnParticle(particleSys, 0.5f);
-        drawParticleSys(player->engine, viewMat, game->deltaTime);
+        if(editMode) {
+            for(int i = 0; i < 4; i++) {
+                drawGizmo(&gizmos[i], viewMat, shader);
+            }
+        }
+        else {
+            drawImage(ship, viewMat);
+            drawParticleSys(player->engine, viewMat, game->deltaTime);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -316,12 +331,15 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     cbc->screenSize.y = height;
 }
 
-Vec2 screenToWorldSpace(Vec2 screenPos, float pixelsPerUnit, Vec2 screenSize) {
+Vec2 screenToWorldSpace(Vec2 screenPos, float pixelsPerUnit, Vec2 screenSize, Vec2 cameraPos) {
     float x = screenPos.x - screenSize.x / 2;
     float y = screenPos.y - screenSize.y / 2;
 
     x /= pixelsPerUnit / 2;
     y /= -pixelsPerUnit / 2;
+
+    x += cameraPos.x;
+    y += cameraPos.y;
 
     return vec2(x, y);
 }
@@ -340,130 +358,106 @@ Vec2 stringToVec2(const char *str) {
     return vec2(x, y);
 }
 
-void readSvgC(char **str, Vec2 *points, int *curPoint, bool isRelativ) {
-    char *cur = *str;
-    Vec2 lastPoint = points[*curPoint - 1];
-    int cpoint = 0;
-    while(*cur != 'Z' && *cur != 'z' && cur[1] != 'C' && cur[1] != 'c' && *cur != '\0') {
-        if(*cur == ' ' && cur[1] != 'Z' && cur[1] != 'z' && cur[1] != 'C' && cur[1] != 'c') {
-            if(isRelativ) {
-                points[*curPoint] = vec2Add(stringToVec2(cur), lastPoint);
-                if(cpoint % 3 == 2) {
-                    lastPoint = points[*curPoint];
-                }
-            }
-            else {
-                points[*curPoint] = stringToVec2(cur);
-            }
-            (*curPoint)++;
-            cpoint++;
-        }
-        cur++;
-    }
-    *str = cur;
+Gizmo *createGizmo(Vec2 pos, float angle, unsigned int shader, float scale) {
+    Gizmo *gizmo = malloc(sizeof(Gizmo));
+
+    gizmo->pos = pos;
+    gizmo->angle = angle;
+    gizmo->handle1dist = scale;
+    gizmo->handle2dist = scale;
+
+    Vec2 handle1dir = vec2Rot(vec2(scale, 0.0f), angle);
+    Vec2 handle2dir = vec2Rot(vec2(-scale, 0.0f), angle);
+
+    gizmo->rect = newRectangle(shader);
+    gizmo->rect->transform.pos = pos;
+    gizmo->rect->transform.scale = vec2(0.3f, 0.3f);
+
+    gizmo->rectHandle1 = newRectangle(shader);
+    gizmo->rectHandle1->transform.pos = vec2Add(pos, handle1dir);
+    gizmo->rectHandle1->transform.scale = vec2(0.3f, 0.3f);
+
+    gizmo->rectHandle2 = newRectangle(shader);
+    gizmo->rectHandle2->transform.pos = vec2Add(pos, handle2dir);
+    gizmo->rectHandle2->transform.scale = vec2(0.3f, 0.3f);
+
+    return gizmo;
 }
 
-Vec2 **loadPathFromSvg(const char* path, int **pointCounts, int *pathCount) {
-    FILE * pFile;
-    long lSize;
-    char * buffer;
-    size_t result;
-    
-    pFile = fopen ( path , "r" );
-    if (pFile==NULL) {
-        fputs ("File error",stderr); exit (1);
-        printf("File error\n");
-    }
-    
-    // obtain file size:
-    fseek (pFile , 0 , SEEK_END);
-    lSize = ftell (pFile);
-    rewind (pFile);
-    
-    // allocate memory to contain the whole file:
-    buffer = (char*) malloc (sizeof(char)*lSize);
-    if (buffer == NULL) {
-        fputs ("Memory error",stderr); exit (2);
-        printf("Memory error\n");
-    }
-    
-    // copy the file into the buffer:
-    result = fread (buffer,1,lSize,pFile);
-    if (result != lSize) {
-        fputs ("Reading error",stderr); exit (3);
-        printf("Reading error\n");
-    }
+void updateGizmoPos(Gizmo *gizmo) {
+    Vec2 posHandle1 = vec2Rot(vec2(gizmo->handle1dist, 0.0f), gizmo->angle);
+    Vec2 posHandle2 = vec2Rot(vec2(-gizmo->handle2dist, 0.0f), gizmo->angle);
+    posHandle1 = vec2Add(posHandle1, gizmo->pos);
+    posHandle2 = vec2Add(posHandle2, gizmo->pos);
 
-    Vec2 points[1000];
-    int interPointCounts[100];
-    int lastPointCount = 0;
-    int curPoint = 0;
-    int curPath = 0;
-    
-    char *pathloc = strstr (buffer, "<path");
-    while (pathloc != NULL) {
+    gizmo->rect->transform.pos = gizmo->pos;
+    gizmo->rectHandle1->transform.pos = posHandle1;
+    gizmo->rectHandle2->transform.pos = posHandle2;
+}
 
-        char *cur = &pathloc[5];
-        while(cur[0] != '>') {
-            if(cur[0] == 'd' && cur[1] == '=' && cur[2] == '"') {
-                cur = &cur[3];
-                while(cur[0] != '"') {
-                    switch(*cur) {
-                        case 'M':
-                            cur++;
-                            points[curPoint] = stringToVec2(cur);
-                            curPoint++;
-                            cur++;
-                            break;
-                        case 'm':
-                            cur++;
-                            //points[curPoint] = vec2Add(stringToVec2(cur), points[curPoint - 1]);
-                            points[curPoint] = stringToVec2(cur);
-                            curPoint++;
-                            cur++;
-                            break;
-                        case 'C':
-                            readSvgC(&cur, points, &curPoint, false);
-                            break;
-                        case 'c':
-                            readSvgC(&cur, points, &curPoint, true);
-                            break;
-                        case 'Z':
-                            cur++;
-                            break;
-                        default:
-                            cur++;
-                            break;
-                    }
-                }
-                break;
-            }
-            cur++;
+
+void updateGizmo(Gizmo *gizmo, GLFWwindow *window, struct CallbackContext *cbc, Camera camera) {
+    static int draging = 0;
+    static Gizmo *dragingGizmo = NULL;
+    int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+    if (state == GLFW_PRESS) {
+        Vec2 mousePos = screenToWorldSpace(cbc->mousePos, camera.pixelsPerUnit, cbc->screenSize, camera.pos);
+        if(pointInRect(gizmo->rect, mousePos)) {
+            draging = 1;
+            dragingGizmo = gizmo;
         }
-        interPointCounts[curPath] = curPoint - lastPointCount;
-        lastPointCount = interPointCounts[curPath];
-        curPath++;
-        pathloc = strstr (cur, "<path");
+        else if(pointInRect(gizmo->rectHandle1, mousePos)) {
+            draging = 2;
+            dragingGizmo = gizmo;
+        }
+        else if(pointInRect(gizmo->rectHandle2, mousePos)) {
+            draging = 3;
+            dragingGizmo = gizmo;
+        }
+        switch (draging) {
+            case 0:
+                break;
+            case 1:
+                dragingGizmo->pos = mousePos;
+                break;
+            case 2:
+                dragingGizmo->handle1dist = vec2Magnitude(vec2Subtraction(mousePos, dragingGizmo->pos));
+                dragingGizmo->angle = -vec2Angle(vec2Subtraction(mousePos, dragingGizmo->pos), vec2(1.0f, 0.0f));
+                break;
+            case 3:
+                dragingGizmo->handle2dist = vec2Magnitude(vec2Subtraction(mousePos, dragingGizmo->pos));
+                dragingGizmo->angle = -vec2Angle(vec2Subtraction(mousePos, dragingGizmo->pos), vec2(-1.0f, 0.0f));
+                break;
+        }
+        updateGizmoPos(gizmo);
     }
-
-    *pathCount = curPath;
-
-    *pointCounts = malloc(sizeof(int) * *pathCount);
-    memcpy(*pointCounts, interPointCounts, sizeof(int) * *pathCount);
-
-    Vec2 *retPoints = malloc(sizeof(Vec2) * curPoint);
-    memcpy(retPoints, points, sizeof(Vec2) * curPoint);
-    
-    Vec2 **paths = malloc(sizeof(Vec2*) * *pathCount);
-    lastPointCount = 0;
-    for(int i = 0; i < *pathCount; i++) {
-        paths[i] = &retPoints[lastPointCount];
-        lastPointCount = *pointCounts[i];
+    else {
+        draging = 0;
     }
-    
-    // terminate
-    fclose (pFile);
-    free (buffer);
+}
 
-    return paths;
+void drawGizmo(Gizmo *gizmo, float *viewMat, unsigned int shader) {
+
+    drawRectangle(gizmo->rect, viewMat);
+    drawRectangle(gizmo->rectHandle1, viewMat);
+    drawRectangle(gizmo->rectHandle2, viewMat);
+
+    Vec2 linePoints[3] = {gizmo->rectHandle1->transform.pos, gizmo->pos, gizmo->rectHandle2->transform.pos};
+
+    Line *line1 = newLine(linePoints, 2, 0.10f, false);
+    line1->shader = shader;
+    Line *line2 = newLine(&linePoints[1], 2, 0.10f, false);
+    line2->shader = shader;
+
+    drawLine(line1, viewMat);
+    drawLine(line2, viewMat);
+}
+
+Vec2 *gizmoArrToPath(Gizmo *gizmo, int gizmoCount, int resolusion) {
+    Vec2 *points = malloc(sizeof(Vec2) * gizmoCount * resolusion);
+    for(int i = 0; i < gizmoCount; i++) {
+        int iplus1 = (i + 1) % gizmoCount;
+        spline(&points[i * resolusion], resolusion, gizmo[i].pos, gizmo[i].rectHandle2->transform.pos, gizmo[iplus1].rectHandle1->transform.pos, gizmo[iplus1].pos);
+    }
+    return points;
 }

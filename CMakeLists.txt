@@ -13,6 +13,7 @@ add_executable("${PROJECT_NAME}"
 )
 
 set_property(TARGET "${PROJECT_NAME}" PROPERTY C_STANDARD 11)
+set(CMAKE_BUILD_TYPE Debug)
 
 target_link_libraries("${PROJECT_NAME}"
 	glad
