@@ -1,5 +1,4 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#include "spaceracer.h"
 
 #include <2dGraphics.h>
 #include <2dMath.h>
@@ -9,64 +8,59 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow *window);
-void mouse_callback(GLFWwindow *window, double posX, double posY);
-Vec2 screenToWorldSpace(Vec2 screenPos, float pixelsPerUnit, Vec2 screenSize, Vec2 cameraPos);
-
-
-
-typedef struct Player {
-    Vec2 pos;
-    Vec2 vel;
-    float rot;
-    float rotVel;
-    ParticleSys rcs[8];
-    ParticleSys *engine;
-    Vec2 colCheck[4];
-} Player;
-
-typedef struct Camera {
-    Vec2 pos;
-    Vec2 aspecRatio;
-    float pixelsPerUnit;
-} Camera;
-
-struct CallbackContext {
-    Vec2 mousePos;
-    Vec2 screenSize;
-    Camera *camera;
-};
-
-typedef struct Game {
-    float deltaTime;
-} Game;
-
-typedef struct Gizmo {
-    Vec2 pos;
-    float angle;
-    float handle1dist;
-    float handle2dist;
-    Rectangle *rect;
-    Rectangle *rectHandle1;
-    Rectangle *rectHandle2;
-} Gizmo;
-
-Gizmo *createGizmo(Vec2 pos, float angle, unsigned int shader, float scale);
-void updateGizmo(Gizmo *gizmo, GLFWwindow *window, struct CallbackContext *cbc, Camera camera);
-void drawGizmo(Gizmo *gizmo, float *viewMat, unsigned int shader);
-
-Vec2 *gizmoArrToPath(Gizmo *gizmo, int gizmoCount, int resolusion);
-
-
-void updatePlayer(GLFWwindow *window, Player *player, Game *game);
-
-// settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
-
 int main()
 {
+    GLFWwindow* window;
+    if(!createGlfwWindow(&window, SCR_WIDTH, SCR_HEIGHT, "Space Racer")) {
+        return -1;
+    }
+    glEnable( GL_DEBUG_OUTPUT );
+    glDebugMessageCallback( openglMessageCallback, 0 );
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    Vec2 respawnPoint = {0.0f, 0.0f};
+    float respawnRot = PI / 2;
+    Player *player = createPlayer(respawnPoint, respawnRot);
+
+    Camera *camera = createCamera(respawnPoint, vec2(1.0f / SCR_WIDTH, 1.0f / SCR_HEIGHT), 70.0f);
+
+    CallbackContext *cbc = createCallbackContext(camera);
+    glfwSetWindowUserPointer(window, cbc);
+
+    glfwSetCursorPosCallback(window, mouse_callback);
+
+    Game *game = malloc(sizeof(Game));
+    game->deltaTime = 0.0;
+
+    unsigned int shader = LoadAndCompileShaders("assets/shader.vert", "assets/shader.frag");
+
+    Image *ship = newImage("assets/ship.png", GL_RGBA, GL_RGBA);
+    ship->rect.transform.scale = vec2Scale(ship->rect.transform.scale, 2.0f);
+
+    Vec2 initalVel = vec2(10.0f, 0.0f);
+    ParticleSys *particleSys = createParticleSys(respawnPoint, initalVel, "assets/smoke1.png");
+    player->engine = particleSys;
+
+    Gizmo gizmos[4];
+    createGizmos(gizmos, shader);
+
+    bool editMode = true;
+    bool justPressed = false;
+    float viewMat[9];
+
+    Vec2 *path = gizmoArrToPath(gizmos, 4, 40);
+    Line *line = newLine(path, 4 * 40, 6.0f, true);
+
+    loop(window, game, player, camera, shader, ship, particleSys, gizmos, path, line, cbc);
+
+    deleteParticleSys(particleSys);
+
+    glfwTerminate();
+    return 0;
+}
+
+bool createGlfwWindow(GLFWwindow **window, int width, int height, const char *title) {
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
@@ -80,20 +74,20 @@ int main()
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "GUI", NULL, NULL);
+    *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
     {
         printf("Failed to create GLFW window\n");
         glfwTerminate();
         return -1;
     }
-    glfwMakeContextCurrent(window);
+    glfwMakeContextCurrent(*window);
     glfwSwapInterval(1);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetFramebufferSizeCallback(*window, framebuffer_size_callback);
 
     //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     if (glfwRawMouseMotionSupported()) {
-        glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        glfwSetInputMode(*window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
         printf("raw mouse\n");
     }
 
@@ -104,82 +98,75 @@ int main()
         printf("Failed to initialize GLAD\n");
         return -1;
     }
+}
 
-    glEnable( GL_DEBUG_OUTPUT );
-    glDebugMessageCallback( openglMessageCallback, 0 );
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    struct CallbackContext *cbc = malloc(sizeof(struct CallbackContext));
-
-    Vec2 respawnPoint = {0.0f, 0.0f};
-    float respawnRot = PI / 2;
+Player *createPlayer(Vec2 pos, float rot) {
     Player *player = malloc(sizeof(Player));
-    player->pos = respawnPoint;
+    player->pos = pos;
     player->vel = vec2zero();
-    player->rot = respawnRot;
+    player->rot = rot;
     player->rotVel = 0;
     player->colCheck[0] = vec2(1.0f, 0.0f);
     player->colCheck[1] = vec2(-1.0f, 0.0f);
     player->colCheck[2] = vec2(0.0f, 1.0f);
     player->colCheck[3] = vec2(0.0f, -1.0f);
+    player->respawnPoint = pos;
+    player->respawnRot = rot;
+    return player;
+}
 
-    Camera camera;
-    camera.pos = respawnPoint;
-
-    camera.pixelsPerUnit = 70;
-    float viewMat[9];
-
-    camera.aspecRatio = vec2(1 / SCR_HEIGHT, 1 / SCR_WIDTH);
-
-    cbc->camera = &camera;
+CallbackContext *createCallbackContext(Camera *camera) {
+    struct CallbackContext *cbc = malloc(sizeof(struct CallbackContext));
+    cbc->camera = camera;
     cbc->mousePos.x = 0.0f;
     cbc->mousePos.y = 0.0f;
-    glfwSetWindowUserPointer(window, cbc);
+    return cbc;
+}
 
-    glfwSetCursorPosCallback(window, mouse_callback);
+Camera *createCamera(Vec2 pos, Vec2 aspecRatio, float pixelsPerUnit) {
+    Camera *camera = malloc(sizeof(Camera));
+    camera->pos = pos;
+    camera->pixelsPerUnit = pixelsPerUnit;
+    camera->aspecRatio = aspecRatio;
+    return camera;
+}
 
-    Game *game = malloc(sizeof(Game));
-    float currentFrame = glfwGetTime();
-    float lastFrame = currentFrame;
-    game->deltaTime = 0.0;
-
-
-
-
-    unsigned int shader = LoadAndCompileShaders("assets/shader.vert", "assets/shader.frag");
-    
-    //struct Rectangle *rectangle = newRectangle();
-    Image *ship = newImage("assets/ship.png", GL_RGBA, GL_RGBA);
-    ship->rect.transform.scale = vec2Scale(ship->rect.transform.scale, 2.0f);
-
-    float mapScale = 30.0f;
-
+ParticleSys *createParticleSys(Vec2 pos, Vec2 initalVel, const char *smokePath) {
     Image *smoke = newImage("assets/smoke1.png", GL_RGBA, GL_RGBA);
-    Vec2 initalVel = vec2(10.0f, 0.0f);
-    ParticleSys *particleSys = newParticleSys(200, smoke, respawnPoint, 1.0, initalVel);
+    ParticleSys *particleSys = newParticleSys(200, smoke, pos, 1.0, initalVel);
     particleSys->randAngle = 0.1f;
     particleSys->randSpeed = 0.4f;
     particleSys->growth = 2.0f;
     particleSys->fade = 1.0f;
-    player->engine = particleSys;
+    return particleSys;
+}
 
-
-    //Gizmo *gizmo = createGizmo(vec2(0.0f, 0.0f), 0.0f, shader);
-
-    Gizmo gizmos[4];
+void createGizmos(Gizmo *gizmos, unsigned int shader) {
     gizmos[0] = *createGizmo(vec2(0.0f, 5.0f), 0.0f, shader, 3);
     gizmos[1] = *createGizmo(vec2(-5.0f, 0.0f), PI/2, shader, 3);
     gizmos[2] = *createGizmo(vec2(0.0f, -5.0f), PI, shader, 3);
     gizmos[3] = *createGizmo(vec2(5.0f, 0.0f), PI + PI/2, shader, 3);
+}
 
-    
+//still way to long
+void loop(GLFWwindow *window,
+        Game *game,
+        Player *player,
+        Camera *camera,
+        unsigned int shader,
+        Image *ship,
+        ParticleSys *particleSys,
+        Gizmo *gizmos,
+        Vec2 *path,
+        Line *line,
+        CallbackContext *cbc
+) {
+    float currentFrame = glfwGetTime();
+    float lastFrame = currentFrame;
+
     bool editMode = true;
     bool justPressed = false;
-
-
-    Vec2 *path = gizmoArrToPath(gizmos, 4, 40);
-    Line *line = newLine(path, 4 * 40, 6.0f, true);
+    float viewMat[9];
 
     while (!glfwWindowShouldClose(window))
     {
@@ -188,7 +175,7 @@ int main()
         lastFrame = currentFrame;
         processInput(window);
 
-        Vec2 viewScale = vec2Scale(camera.aspecRatio, camera.pixelsPerUnit);
+        Vec2 viewScale = vec2Scale(camera->aspecRatio, camera->pixelsPerUnit);
 
         if(glfwGetKey(window, GLFW_KEY_TAB) == GLFW_RELEASE) {
             justPressed = false;
@@ -202,7 +189,7 @@ int main()
                 editMode = false;
                 justPressed = true;
             }
-            camera.pos = vec2zero();
+            camera->pos = vec2zero();
         }
         else {
             updatePlayer(window, player, game);
@@ -210,7 +197,7 @@ int main()
             particleSys->initalVel = vec2Add(player->vel, vec2Rot(vec2(0.0f, -10.0f), player->rot));
 
             bool colliding = false;
-            respawnPoint = gizmos[0].pos;
+            player->respawnPoint = gizmos[0].pos;
 
             if(glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS && !justPressed) {
                 editMode = true;
@@ -225,18 +212,18 @@ int main()
             if(colliding) {
                 //printf("colliding\n");
                 player->vel = vec2zero();
-                player->pos = respawnPoint;
+                player->pos = player->respawnPoint;
                 player->rotVel = 0.0f;
-                player->rot = respawnRot;
+                player->rot = player->respawnRot;
             }
-            Vec2 viewScale = vec2Scale(camera.aspecRatio, camera.pixelsPerUnit / (1 + vec2Magnitude(player->vel) * 0.010f));
-            camera.pos = vec2Lerp(camera.pos, player->pos, 3.0f * game->deltaTime);
+            Vec2 viewScale = vec2Scale(camera->aspecRatio, camera->pixelsPerUnit / (1 + vec2Magnitude(player->vel) * 0.010f));
+            camera->pos = vec2Lerp(camera->pos, player->pos, 3.0f * game->deltaTime);
 
             ship->rect.transform.pos = player->pos;
             ship->rect.transform.rot = player->rot;
         }
 
-        translationMatrix(vec2Subtraction(vec2zero(), camera.pos), viewMat);
+        translationMatrix(vec2Subtraction(vec2zero(), camera->pos), viewMat);
         scaleMat(viewScale, viewMat);
 
 
@@ -266,12 +253,8 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
-    deleteParticleSys(particleSys);
-
-    glfwTerminate();
-    return 0;
 }
+
 
 void updatePlayer(GLFWwindow *window, Player *player, Game *game) {
     Vec2 input = vec2zero();
@@ -396,12 +379,12 @@ void updateGizmoPos(Gizmo *gizmo) {
 }
 
 
-void updateGizmo(Gizmo *gizmo, GLFWwindow *window, struct CallbackContext *cbc, Camera camera) {
+void updateGizmo(Gizmo *gizmo, GLFWwindow *window, struct CallbackContext *cbc, Camera *camera) {
     static int draging = 0;
     static Gizmo *dragingGizmo = NULL;
     int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
     if (state == GLFW_PRESS) {
-        Vec2 mousePos = screenToWorldSpace(cbc->mousePos, camera.pixelsPerUnit, cbc->screenSize, camera.pos);
+        Vec2 mousePos = screenToWorldSpace(cbc->mousePos, camera->pixelsPerUnit, cbc->screenSize, camera->pos);
         if(pointInRect(gizmo->rect, mousePos)) {
             draging = 1;
             dragingGizmo = gizmo;
