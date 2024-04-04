@@ -45,10 +45,6 @@ int main()
     Gizmo gizmos[4];
     createGizmos(gizmos, shader);
 
-    bool editMode = true;
-    bool justPressed = false;
-    float viewMat[9];
-
     Vec2 *path = gizmoArrToPath(gizmos, 4, 40);
     Line *line = newLine(path, 4 * 40, 6.0f, true);
 
@@ -74,18 +70,17 @@ bool createGlfwWindow(GLFWwindow **window, int width, int height, const char *ti
 
     // glfw window creation
     // --------------------
-    *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    *window = glfwCreateWindow(width, height, title, NULL, NULL);
     if (window == NULL)
     {
         printf("Failed to create GLFW window\n");
         glfwTerminate();
-        return -1;
+        return false;
     }
     glfwMakeContextCurrent(*window);
     glfwSwapInterval(1);
     glfwSetFramebufferSizeCallback(*window, framebuffer_size_callback);
 
-    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     if (glfwRawMouseMotionSupported()) {
         glfwSetInputMode(*window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
         printf("raw mouse\n");
@@ -96,8 +91,9 @@ bool createGlfwWindow(GLFWwindow **window, int width, int height, const char *ti
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         printf("Failed to initialize GLAD\n");
-        return -1;
+        return false;
     }
+    return true;
 }
 
 Player *createPlayer(Vec2 pos, float rot) {
@@ -132,7 +128,7 @@ Camera *createCamera(Vec2 pos, Vec2 aspecRatio, float pixelsPerUnit) {
 }
 
 ParticleSys *createParticleSys(Vec2 pos, Vec2 initalVel, const char *smokePath) {
-    Image *smoke = newImage("assets/smoke1.png", GL_RGBA, GL_RGBA);
+    Image *smoke = newImage(smokePath, GL_RGBA, GL_RGBA);
     ParticleSys *particleSys = newParticleSys(200, smoke, pos, 1.0, initalVel);
     particleSys->randAngle = 0.1f;
     particleSys->randSpeed = 0.4f;
@@ -159,10 +155,10 @@ void loop(GLFWwindow *window,
         Gizmo *gizmos,
         Vec2 *path,
         Line *line,
-        CallbackContext *cbc
+        const CallbackContext *cbc
 ) {
-    float currentFrame = glfwGetTime();
-    float lastFrame = currentFrame;
+    double currentFrame = glfwGetTime();
+    double lastFrame = currentFrame;
 
     bool editMode = true;
     bool justPressed = false;
@@ -205,19 +201,17 @@ void loop(GLFWwindow *window,
                 colliding = true;
             }
 
-            if(!pointOnPath(path, 4 * 40 + 1, player->pos, 2.7)) {
+            if(!pointOnPath(path, 4 * 40 + 1, player->pos, 2.7f)) {
                 colliding = true;
             }
 
             if(colliding) {
-                //printf("colliding\n");
                 player->vel = vec2zero();
                 player->pos = player->respawnPoint;
                 player->rotVel = 0.0f;
                 player->rot = player->respawnRot;
             }
-            Vec2 viewScale = vec2Scale(camera->aspecRatio, camera->pixelsPerUnit / (1 + vec2Magnitude(player->vel) * 0.010f));
-            camera->pos = vec2Lerp(camera->pos, player->pos, 3.0f * game->deltaTime);
+            camera->pos = vec2Lerp(camera->pos, player->pos, 3.0f * (float)game->deltaTime);
 
             ship->rect.transform.pos = player->pos;
             ship->rect.transform.rot = player->rot;
@@ -237,9 +231,9 @@ void loop(GLFWwindow *window,
 
         glUseProgram(shader);
 
-        UniformVec3(shader, "col", 0.3, 0.4, 0.5);
+        UniformVec3(shader, "col", 0.3f, 0.4f, 0.5f);
         drawLine(line, viewMat);
-        UniformVec3(shader, "col", 1.0, 0.0, 0.0);
+        UniformVec3(shader, "col", 1.0f, 0.0f, 0.0f);
         if(editMode) {
             for(int i = 0; i < 4; i++) {
                 drawGizmo(&gizmos[i], viewMat, shader);
@@ -247,7 +241,7 @@ void loop(GLFWwindow *window,
         }
         else {
             drawImage(ship, viewMat);
-            drawParticleSys(player->engine, viewMat, game->deltaTime);
+            drawParticleSys(player->engine, viewMat, (float)game->deltaTime);
         }
 
         glfwSwapBuffers(window);
@@ -256,7 +250,7 @@ void loop(GLFWwindow *window,
 }
 
 
-void updatePlayer(GLFWwindow *window, Player *player, Game *game) {
+void updatePlayer(GLFWwindow *window, Player *player, const Game *game) {
     Vec2 input = vec2zero();
     if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) 
         input = vec2Add(input, vec2(0.0f, 1.0f));
@@ -278,14 +272,12 @@ void updatePlayer(GLFWwindow *window, Player *player, Game *game) {
     if(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) 
         rotInput -= 1.0f;
 
-    player->rotVel += rotInput * 10.0 * game->deltaTime;
-    player->rot += player->rotVel * game->deltaTime;
+    player->rotVel += rotInput * 10.0f * (float)game->deltaTime;
+    player->rot += player->rotVel * (float)game->deltaTime;
     input = vec2Rot(input, player->rot);
 
-    //vec2Noramlize(input);
-
-    player->vel = vec2Add(player->vel, vec2Scale(input, 8.0 * game->deltaTime));
-    player->pos = vec2Add(player->pos, vec2Scale(player->vel, game->deltaTime));
+    player->vel = vec2Add(player->vel, vec2Scale(input, 8.0f * (float)game->deltaTime));
+    player->pos = vec2Add(player->pos, vec2Scale(player->vel, (float)game->deltaTime));
 }
 
 void processInput(GLFWwindow *window)
@@ -296,8 +288,8 @@ void processInput(GLFWwindow *window)
 
 void mouse_callback(GLFWwindow *window, double posX, double posY){
     struct CallbackContext *cbc = (struct CallbackContext *)glfwGetWindowUserPointer(window);
-    cbc->mousePos.x = posX;
-    cbc->mousePos.y = posY;
+    cbc->mousePos.x = (float)posX;
+    cbc->mousePos.y = (float)posY;
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -308,10 +300,10 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
     struct CallbackContext *cbc = glfwGetWindowUserPointer(window);
 
-    cbc->camera->aspecRatio = vec2(1.0f / width, 1.0f / height);
+    cbc->camera->aspecRatio = vec2(1.0f / (float)width, 1.0f / (float)height);
 
-    cbc->screenSize.x = width;
-    cbc->screenSize.y = height;
+    cbc->screenSize.x = (float)width;
+    cbc->screenSize.y = (float)height;
 }
 
 Vec2 screenToWorldSpace(Vec2 screenPos, float pixelsPerUnit, Vec2 screenSize, Vec2 cameraPos) {
@@ -328,15 +320,15 @@ Vec2 screenToWorldSpace(Vec2 screenPos, float pixelsPerUnit, Vec2 screenSize, Ve
 }
 
 Vec2 stringToVec2(const char *str) {
-    float x = atof (str);
+    float x = (float)atof(str);
 
-    char *comaLoc = strchr (str, ',');
+    const char *comaLoc = strchr (str, ',');
     if (comaLoc == NULL) {
         printf("Vec2 parse error\n");
         return vec2(0.0f, 0.0f);
     }
     
-    float y = atof(comaLoc + 1);
+    float y = (float)atof(comaLoc + 1);
 
     return vec2(x, y);
 }
@@ -379,7 +371,7 @@ void updateGizmoPos(Gizmo *gizmo) {
 }
 
 
-void updateGizmo(Gizmo *gizmo, GLFWwindow *window, struct CallbackContext *cbc, Camera *camera) {
+void updateGizmo(Gizmo *gizmo, GLFWwindow *window, const CallbackContext *cbc, const Camera *camera) {
     static int draging = 0;
     static Gizmo *dragingGizmo = NULL;
     int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
@@ -411,6 +403,9 @@ void updateGizmo(Gizmo *gizmo, GLFWwindow *window, struct CallbackContext *cbc, 
                 dragingGizmo->handle2dist = vec2Magnitude(vec2Subtraction(mousePos, dragingGizmo->pos));
                 dragingGizmo->angle = -vec2Angle(vec2Subtraction(mousePos, dragingGizmo->pos), vec2(-1.0f, 0.0f));
                 break;
+            default:
+                printf("error\n");
+                break;
         }
         updateGizmoPos(gizmo);
     }
@@ -436,7 +431,7 @@ void drawGizmo(Gizmo *gizmo, float *viewMat, unsigned int shader) {
     drawLine(line2, viewMat);
 }
 
-Vec2 *gizmoArrToPath(Gizmo *gizmo, int gizmoCount, int resolusion) {
+Vec2 *gizmoArrToPath(const Gizmo *gizmo, int gizmoCount, int resolusion) {
     Vec2 *points = malloc(sizeof(Vec2) * gizmoCount * resolusion);
     for(int i = 0; i < gizmoCount; i++) {
         int iplus1 = (i + 1) % gizmoCount;

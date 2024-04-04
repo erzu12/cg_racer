@@ -36,7 +36,7 @@ typedef struct CallbackContext {
 } CallbackContext;
 
 typedef struct Game {
-    float deltaTime;
+    double deltaTime;
 } Game;
 
 typedef struct Gizmo {
@@ -57,7 +57,7 @@ Vec2 screenToWorldSpace(Vec2 screenPos, float pixelsPerUnit, Vec2 screenSize, Ve
 bool createGlfwWindow(GLFWwindow **window, int width, int height, const char *title);
 
 Player *createPlayer(Vec2 pos, float rot);
-void updatePlayer(GLFWwindow *window, Player *player, Game *game);
+void updatePlayer(GLFWwindow *window, Player *player, const Game *game);
 
 CallbackContext *createCallbackContext(Camera *camera);
 Camera *createCamera(Vec2 pos, Vec2 aspecRatio, float pixelsPerUnit);
@@ -65,9 +65,9 @@ ParticleSys *createParticleSys(Vec2 pos, Vec2 initalVel, const char *smokePath);
 
 Gizmo *createGizmo(Vec2 pos, float angle, unsigned int shader, float scale);
 void createGizmos(Gizmo *gizmos, unsigned int shader);
-void updateGizmo(Gizmo *gizmo, GLFWwindow *window, struct CallbackContext *cbc, Camera *camera);
+void updateGizmo(Gizmo *gizmo, GLFWwindow *window, const CallbackContext *cbc, const Camera *camera);
 void drawGizmo(Gizmo *gizmo, float *viewMat, unsigned int shader);
-Vec2 *gizmoArrToPath(Gizmo *gizmo, int gizmoCount, int resolusion);
+Vec2 *gizmoArrToPath(const Gizmo *gizmo, int gizmoCount, int resolusion);
 
 void loop(GLFWwindow *window,
     Game *game,
@@ -79,5 +79,5 @@ void loop(GLFWwindow *window,
     Gizmo *gizmos,
     Vec2 *path,
     Line *line,
-    CallbackContext *cbc
+    const CallbackContext *cbc
 );
