@@ -4,7 +4,10 @@ project(hfg)
 
 add_subdirectory(extern/stb)
 
-file(GLOB hfg_SRC CONFIGURE_DEPENDS "*.h")
+file(GLOB_RECURSE hfg_SRC
+    "*.c"
+    "*.h"
+)
 
 add_library("${PROJECT_NAME}"
     ${hfg_SRC}
@@ -17,6 +20,7 @@ target_include_directories("${PROJECT_NAME}"
 	PUBLIC ${CMAKE_SOURCE_DIR}/external/glad/includes
 	PUBLIC ${CMAKE_SOURCE_DIR}/external/glfw/includes
     PUBLIC ${PROJECT_SOURCE_DIR}/extern/stb
+    PUBLIC ${CMAKE_SOURCE_DIR}/hfg
 	PUBLIC ${CMAKE_SOURCE_DIR}/
 )
 

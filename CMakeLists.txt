@@ -7,9 +7,13 @@ add_subdirectory(hfg)
 add_subdirectory(extern/glfw)
 add_subdirectory(extern/glad)
 
+file(GLOB_RECURSE SOURCES
+    src/*.c
+    src/*.h
+)
 
 add_executable("${PROJECT_NAME}"
-    "spaceracer.c"
+    ${SOURCES}
 )
 
 set_property(TARGET "${PROJECT_NAME}" PROPERTY C_STANDARD 11)
