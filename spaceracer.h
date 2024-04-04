@@ -63,11 +63,13 @@ CallbackContext *createCallbackContext(Camera *camera);
 Camera *createCamera(Vec2 pos, Vec2 aspecRatio, float pixelsPerUnit);
 ParticleSys *createParticleSys(Vec2 pos, Vec2 initalVel, const char *smokePath);
 
-Gizmo *createGizmo(Vec2 pos, float angle, unsigned int shader, float scale);
+void createGizmo(Gizmo *gizmo, Vec2 pos, float angle, unsigned int shader, float scale);
+void freeGizmos(Gizmo *gizmo, int count);
+
 void createGizmos(Gizmo *gizmos, unsigned int shader);
 void updateGizmo(Gizmo *gizmo, GLFWwindow *window, const CallbackContext *cbc, const Camera *camera);
 void drawGizmo(Gizmo *gizmo, float *viewMat, unsigned int shader);
-Vec2 *gizmoArrToPath(const Gizmo *gizmo, int gizmoCount, int resolusion);
+Vec2 *gizmoArrToPath(const Gizmo *gizmo, int gizmoCount, int resolusion, Vec2 *path);
 
 void loop(GLFWwindow *window,
     Game *game,

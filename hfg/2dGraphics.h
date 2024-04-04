@@ -171,6 +171,7 @@ Image *newImage(const char *path, GLint colorSpace, GLint internalColorSpace) {
     }
 
     image->rect = *rect;
+    free(rect);
     return image;
 }
 
@@ -180,6 +181,11 @@ void drawImage(Image *image, float *viewMat) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, image->texture);
     drawRectangle(&image->rect, viewMat);
+}
+
+void freeImage(Image *image) {
+    glDeleteTextures(1, &image->texture);
+    free(image);
 }
 
 ParticleSys *newParticleSys(int maxParticles, Image *image, Vec2 pos, float initialSize, Vec2 initalVel) {
@@ -247,10 +253,11 @@ void drawParticleSys(ParticleSys *particleSys, float *viewMat, float deltaTime) 
 
 void deleteParticleSys(ParticleSys *particleSys) {
     free(particleSys->particles);
+    free(particleSys->image);
     free(particleSys);
 }
 
-Line *newLine(Vec2 *points, int pointCount, float thickness, bool closed) {
+Line *newLine(Vec2 *points, int pointCount, float thickness, bool closed, Line *line) {
 
     int vertCount = 4 * pointCount;
     float *verts = malloc(vertCount * sizeof(float));
@@ -314,7 +321,7 @@ Line *newLine(Vec2 *points, int pointCount, float thickness, bool closed) {
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertCount * 2 * sizeof(float), verts, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertCount * sizeof(float), verts, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indCount * sizeof(unsigned int), inds, GL_STATIC_DRAW);
@@ -327,7 +334,9 @@ Line *newLine(Vec2 *points, int pointCount, float thickness, bool closed) {
     free(verts);
     free(inds);
 
-    Line *line = malloc(sizeof(Line));
+    if(!line) {
+        line = malloc(sizeof(Line));
+    }
 
     line->VAO = VAO;
     line->indCount = indCount;
@@ -407,7 +416,6 @@ unsigned int LoadAndCompileShaders(const char* vertexPath, const char* fragmentP
 
 	vertCodeArr[0] = vertCode;
 	fragCodeArr[0] = fragCode;
-
 	int success;
 	char infoLog[512];
 
@@ -434,6 +442,9 @@ unsigned int LoadAndCompileShaders(const char* vertexPath, const char* fragmentP
 	glCompileShader(fragmentShader);
 
 	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+
+    free(fragCode);
+    free(vertCode);
 	
 	if(!success) {
 		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);

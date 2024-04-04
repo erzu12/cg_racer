@@ -45,12 +45,20 @@ int main()
     Gizmo gizmos[4];
     createGizmos(gizmos, shader);
 
-    Vec2 *path = gizmoArrToPath(gizmos, 4, 40);
-    Line *line = newLine(path, 4 * 40, 6.0f, true);
+    Vec2 *path = gizmoArrToPath(gizmos, 4, 40, NULL);
+    Line *line = newLine(path, 4 * 40, 6.0f, true, NULL);
 
     loop(window, game, player, camera, shader, ship, particleSys, gizmos, path, line, cbc);
 
     deleteParticleSys(particleSys);
+    freeGizmos(gizmos, 4);
+    free(path);
+    free(line);
+    free(player);
+    free(camera);
+    free(game);
+    freeImage(ship);
+    free(cbc);
 
     glfwTerminate();
     return 0;
@@ -138,10 +146,18 @@ ParticleSys *createParticleSys(Vec2 pos, Vec2 initalVel, const char *smokePath) 
 }
 
 void createGizmos(Gizmo *gizmos, unsigned int shader) {
-    gizmos[0] = *createGizmo(vec2(0.0f, 5.0f), 0.0f, shader, 3);
-    gizmos[1] = *createGizmo(vec2(-5.0f, 0.0f), PI/2, shader, 3);
-    gizmos[2] = *createGizmo(vec2(0.0f, -5.0f), PI, shader, 3);
-    gizmos[3] = *createGizmo(vec2(5.0f, 0.0f), PI + PI/2, shader, 3);
+    createGizmo(&gizmos[0], vec2(0.0f, 5.0f), 0.0f, shader, 3);
+    createGizmo(&gizmos[1], vec2(-5.0f, 0.0f), PI/2, shader, 3);
+    createGizmo(&gizmos[2], vec2(0.0f, -5.0f), PI, shader, 3);
+    createGizmo(&gizmos[3], vec2(5.0f, 0.0f), PI + PI/2, shader, 3);
+}
+
+void freeGizmos(Gizmo *gizmos, int count) {
+    for(int i = 0; i < count; i++) {
+        free(gizmos[i].rect);
+        free(gizmos[i].rectHandle1);
+        free(gizmos[i].rectHandle2);
+    }
 }
 
 //still way to long
@@ -178,8 +194,8 @@ void loop(GLFWwindow *window,
         }
 
         if(editMode) {
-            path = gizmoArrToPath(gizmos, 4, 40);
-            line = newLine(path, 4 * 40, 6.0f, true);
+            path = gizmoArrToPath(gizmos, 4, 40, path);
+            line = newLine(path, 4 * 40, 6.0f, true, line);
             line->shader = shader;
             if(glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS && !justPressed) {
                 editMode = false;
@@ -333,8 +349,7 @@ Vec2 stringToVec2(const char *str) {
     return vec2(x, y);
 }
 
-Gizmo *createGizmo(Vec2 pos, float angle, unsigned int shader, float scale) {
-    Gizmo *gizmo = malloc(sizeof(Gizmo));
+void createGizmo(Gizmo * gizmo, Vec2 pos, float angle, unsigned int shader, float scale) {
 
     gizmo->pos = pos;
     gizmo->angle = angle;
@@ -355,8 +370,6 @@ Gizmo *createGizmo(Vec2 pos, float angle, unsigned int shader, float scale) {
     gizmo->rectHandle2 = newRectangle(shader);
     gizmo->rectHandle2->transform.pos = vec2Add(pos, handle2dir);
     gizmo->rectHandle2->transform.scale = vec2(0.3f, 0.3f);
-
-    return gizmo;
 }
 
 void updateGizmoPos(Gizmo *gizmo) {
@@ -422,17 +435,21 @@ void drawGizmo(Gizmo *gizmo, float *viewMat, unsigned int shader) {
 
     Vec2 linePoints[3] = {gizmo->rectHandle1->transform.pos, gizmo->pos, gizmo->rectHandle2->transform.pos};
 
-    Line *line1 = newLine(linePoints, 2, 0.10f, false);
+    Line *line1 = newLine(linePoints, 2, 0.10f, false, NULL);
     line1->shader = shader;
-    Line *line2 = newLine(&linePoints[1], 2, 0.10f, false);
+    Line *line2 = newLine(&linePoints[1], 2, 0.10f, false, NULL);
     line2->shader = shader;
 
     drawLine(line1, viewMat);
     drawLine(line2, viewMat);
+    free(line1);
+    free(line2);
 }
 
-Vec2 *gizmoArrToPath(const Gizmo *gizmo, int gizmoCount, int resolusion) {
-    Vec2 *points = malloc(sizeof(Vec2) * gizmoCount * resolusion);
+Vec2 *gizmoArrToPath(const Gizmo *gizmo, int gizmoCount, int resolusion, Vec2 *points) {
+    if(!points) {
+        points = malloc(sizeof(Vec2) * gizmoCount * resolusion);
+    }
     for(int i = 0; i < gizmoCount; i++) {
         int iplus1 = (i + 1) % gizmoCount;
         spline(&points[i * resolusion], resolusion, gizmo[i].pos, gizmo[i].rectHandle2->transform.pos, gizmo[iplus1].rectHandle1->transform.pos, gizmo[iplus1].pos);
