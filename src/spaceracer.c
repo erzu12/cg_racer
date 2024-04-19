@@ -8,7 +8,11 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-int main()
+// settings
+const unsigned int SCR_WIDTH = 800;
+const unsigned int SCR_HEIGHT = 600;
+
+int spaceracer()
 {
     GLFWwindow* window;
     if(!createGlfwWindow(&window, SCR_WIDTH, SCR_HEIGHT, "Space Racer")) {

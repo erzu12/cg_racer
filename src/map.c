@@ -19,7 +19,6 @@ void freeGizmos(Gizmo *gizmos, int count) {
 }
 
 void createGizmo(Gizmo * gizmo, Vec2 pos, float angle, unsigned int shader, float scale) {
-
     gizmo->pos = pos;
     gizmo->angle = angle;
     gizmo->handle1dist = scale;

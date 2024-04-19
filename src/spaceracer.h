@@ -11,14 +11,12 @@
 #include "game.h"
 #include "map.h"
 
-// settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+
+int spaceracer();
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow *window, double posX, double posY);
-Vec2 screenToWorldSpace(Vec2 screenPos, float pixelsPerUnit, Vec2 screenSize, Vec2 cameraPos);
 
 bool createGlfwWindow(GLFWwindow **window, int width, int height, const char *title);
 

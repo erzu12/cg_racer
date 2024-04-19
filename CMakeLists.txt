@@ -2,32 +2,33 @@ cmake_minimum_required(VERSION 3.16.2)
 
 project(spaceracer)
 
-add_subdirectory(hfg)
+
+# SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build)
+
+
+#SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)  
+# We declare a variable to select what to build 
+set (TARGET_GROUP production CACHE STRING "What Should I Build?")  # Modules that exist in both our release and our unit tests, are added now   
 
 add_subdirectory(extern/glfw)
 add_subdirectory(extern/glad)
 
-file(GLOB_RECURSE SOURCES
-    src/*.c
-    src/*.h
-)
-
-add_executable("${PROJECT_NAME}"
-    ${SOURCES}
-)
-
-set_property(TARGET "${PROJECT_NAME}" PROPERTY C_STANDARD 11)
 set(CMAKE_BUILD_TYPE Debug)
 
-target_link_libraries("${PROJECT_NAME}"
-	glad
-	-lglfw
-    hfg
-)
+add_subdirectory(hfg)
+add_subdirectory(src)
 
-target_include_directories("${PROJECT_NAME}"
-	PUBLIC ${CMAKE_SOURCE_DIR}/external/glad/includes
-	PUBLIC ${CMAKE_SOURCE_DIR}/external/glfw/includes
-	PUBLIC ${CMAKE_SOURCE_DIR}/hfg
-	PUBLIC extern
-)
+if(TARGET_GROUP STREQUAL release) 
+    # If we had any files that ONLY were compiled into our release, for example startup code,
+    # it's really handy to put it here.  
+elseif(TARGET_GROUP STREQUAL test) 
+    # Our tests need to let CTest know we're running tests    
+    include(CTest)  
+    enable_testing()
+    # It also needs to understand we have code in source and test directories  
+    add_subdirectory(unity)    
+    add_subdirectory(test)  
+else()    
+    message(FATAL_ERROR "I don't know the TARGET_GROUP you gave me!") 
+endif()
+
