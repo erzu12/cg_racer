@@ -22,11 +22,7 @@ if(TARGET_GROUP STREQUAL release)
     # If we had any files that ONLY were compiled into our release, for example startup code,
     # it's really handy to put it here.  
 elseif(TARGET_GROUP STREQUAL test) 
-    # Our tests need to let CTest know we're running tests    
-    include(CTest)  
-    enable_testing()
     # It also needs to understand we have code in source and test directories  
-    add_subdirectory(unity)    
     add_subdirectory(test)  
 else()    
     message(FATAL_ERROR "I don't know the TARGET_GROUP you gave me!") 

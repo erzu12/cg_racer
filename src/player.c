@@ -16,26 +16,26 @@ Player *createPlayer(Vec2 pos, float rot) {
 }
 
 
-void updatePlayer(GLFWwindow *window, Player *player, const Game *game) {
+void updatePlayer(Window *window, Player *player, const Game *game) {
     Vec2 input = vec2zero();
-    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) 
+    if(isWKeyDown(window))
         input = vec2Add(input, vec2(0.0f, 1.0f));
-    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) 
+    if(isSKeyDown(window))
         input = vec2Add(input, vec2(0.0f, -1.0f));
-    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) 
+    if(isDKeyDown(window))
         input = vec2Add(input, vec2(1.0f, 0.0f));
-    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) 
+    if(isAKeyDown(window))
         input = vec2Add(input, vec2(-1.0f, 0.0f));
 
-    if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+    if(isSpaceKeyDown(window)) {
         input = vec2Add(input, vec2(0.0f, 2.0f));
         spawnParticle(player->engine, 1.0);
     }
 
     float rotInput = 0.0f;
-    if(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) 
+    if(isLeftKeyDown(window))
         rotInput += 1.0f;
-    if(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) 
+    if(isRightKeyDown(window))
         rotInput -= 1.0f;
 
     player->rotVel += rotInput * 10.0f * (float)game->deltaTime;

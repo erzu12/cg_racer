@@ -1,6 +1,5 @@
 #pragma once
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <stb_image.h>
 
 #include <stdlib.h>
@@ -92,5 +91,5 @@ void UniformVec3(unsigned int shader, const char* name, float x, float y, float 
 void UniformVec3v(unsigned int shader, const char* name, const GLfloat *val);
 void UniformMat3v(unsigned int shader, const char* name, const GLfloat *val);
 
-void APIENTRY openglMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
+void openglMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
 

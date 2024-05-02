@@ -2,11 +2,11 @@
 
 
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
 
 #include <2dMath.h>
 #include <2dGraphics.h>
 
+#include "window.h"
 #include "player.h"
 #include "game.h"
 #include "map.h"
@@ -14,15 +14,15 @@
 
 int spaceracer();
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow *window);
-void mouse_callback(GLFWwindow *window, double posX, double posY);
+void framebuffer_size_callback(Window* window, int width, int height);
+void processInput(Window *window);
+void mouse_callback(Window *window, double posX, double posY);
 
-bool createGlfwWindow(GLFWwindow **window, int width, int height, const char *title);
+bool createGlfwWindow(Window **window, int width, int height, const char *title);
 
 ParticleSys *createParticleSys(Vec2 pos, Vec2 initalVel, const char *smokePath);
 
-void loop(GLFWwindow *window,
+void loop(Window *window,
     Game *game,
     Player *player,
     Camera *camera,

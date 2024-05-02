@@ -5,6 +5,7 @@
 #include <2dSpline.h>
 #include <2dPhysics.h>
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -14,8 +15,8 @@ const unsigned int SCR_HEIGHT = 600;
 
 int spaceracer()
 {
-    GLFWwindow* window;
-    if(!createGlfwWindow(&window, SCR_WIDTH, SCR_HEIGHT, "Space Racer")) {
+    Window* window = createWindow(SCR_WIDTH, SCR_HEIGHT, "Space Racer");
+    if(window == NULL) {
         return -1;
     }
     glEnable( GL_DEBUG_OUTPUT );
@@ -30,9 +31,11 @@ int spaceracer()
     Camera *camera = createCamera(respawnPoint, vec2(1.0f / SCR_WIDTH, 1.0f / SCR_HEIGHT), 70.0f);
 
     CallbackContext *cbc = createCallbackContext(camera);
-    glfwSetWindowUserPointer(window, cbc);
+    windowSetUserPointer(window, cbc);
 
-    glfwSetCursorPosCallback(window, mouse_callback);
+    setCursorPosCallback(window, mouse_callback);
+    setWindowSizeCallback(window, framebuffer_size_callback);
+
 
     Game *game = malloc(sizeof(Game));
     game->deltaTime = 0.0;
@@ -64,49 +67,10 @@ int spaceracer()
     freeImage(ship);
     free(cbc);
 
-    glfwTerminate();
+    windowTerminate();
     return 0;
 }
 
-bool createGlfwWindow(GLFWwindow **window, int width, int height, const char *title) {
-    // glfw: initialize and configure
-    // ------------------------------
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-    // glfw window creation
-    // --------------------
-    *window = glfwCreateWindow(width, height, title, NULL, NULL);
-    if (window == NULL)
-    {
-        printf("Failed to create GLFW window\n");
-        glfwTerminate();
-        return false;
-    }
-    glfwMakeContextCurrent(*window);
-    glfwSwapInterval(1);
-    glfwSetFramebufferSizeCallback(*window, framebuffer_size_callback);
-
-    if (glfwRawMouseMotionSupported()) {
-        glfwSetInputMode(*window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-        printf("raw mouse\n");
-    }
-
-    // glad: load all OpenGL function pointers
-    // ---------------------------------------
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        printf("Failed to initialize GLAD\n");
-        return false;
-    }
-    return true;
-}
 
 
 ParticleSys *createParticleSys(Vec2 pos, Vec2 initalVel, const char *smokePath) {
@@ -121,7 +85,7 @@ ParticleSys *createParticleSys(Vec2 pos, Vec2 initalVel, const char *smokePath) 
 
 
 //still way to long
-void loop(GLFWwindow *window,
+void loop(Window *window,
         Game *game,
         Player *player,
         Camera *camera,
@@ -133,23 +97,23 @@ void loop(GLFWwindow *window,
         Line *line,
         const CallbackContext *cbc
 ) {
-    double currentFrame = glfwGetTime();
+    double currentFrame = getTime();
     double lastFrame = currentFrame;
 
     bool editMode = true;
     bool justPressed = false;
     float viewMat[9];
 
-    while (!glfwWindowShouldClose(window))
+    while (!windowShouldClose(window))
     {
-        currentFrame = glfwGetTime();
+        currentFrame = getTime();
         game->deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         processInput(window);
 
         Vec2 viewScale = vec2Scale(camera->aspecRatio, camera->pixelsPerUnit);
 
-        if(glfwGetKey(window, GLFW_KEY_TAB) == GLFW_RELEASE) {
+        if(!isTabKeyDown(window)) {
             justPressed = false;
         }
 
@@ -157,7 +121,7 @@ void loop(GLFWwindow *window,
             path = gizmoArrToPath(gizmos, 4, 40, path);
             line = newLine(path, 4 * 40, 6.0f, true, line);
             line->shader = shader;
-            if(glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS && !justPressed) {
+            if(isTabKeyDown(window) && !justPressed) {
                 editMode = false;
                 justPressed = true;
             }
@@ -171,7 +135,7 @@ void loop(GLFWwindow *window,
             bool colliding = false;
             player->respawnPoint = gizmos[0].pos;
 
-            if(glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS && !justPressed) {
+            if(isTabKeyDown(window) && !justPressed) {
                 editMode = true;
                 justPressed = true;
                 colliding = true;
@@ -220,30 +184,29 @@ void loop(GLFWwindow *window,
             drawParticleSys(player->engine, viewMat, (float)game->deltaTime);
         }
 
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        endFrame(window);
     }
 }
 
-void processInput(GLFWwindow *window)
+void processInput(Window *window)
 {
-    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
+    if(isEscKeyDown(window))
+        setWindowShouldClose(window, true);
 }
 
-void mouse_callback(GLFWwindow *window, double posX, double posY){
-    struct CallbackContext *cbc = (struct CallbackContext *)glfwGetWindowUserPointer(window);
+void mouse_callback(Window *window, double posX, double posY){
+    struct CallbackContext *cbc = (struct CallbackContext *)windowGetUserPointer(window);
     cbc->mousePos.x = (float)posX;
     cbc->mousePos.y = (float)posY;
 }
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void framebuffer_size_callback(Window* window, int width, int height)
 {
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
 
-    struct CallbackContext *cbc = glfwGetWindowUserPointer(window);
+    struct CallbackContext *cbc = (struct CallbackContext *)windowGetUserPointer(window);
 
     cbc->camera->aspecRatio = vec2(1.0f / (float)width, 1.0f / (float)height);
 

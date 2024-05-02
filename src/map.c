@@ -52,11 +52,10 @@ void updateGizmoPos(Gizmo *gizmo) {
 }
 
 
-void updateGizmo(Gizmo *gizmo, GLFWwindow *window, const CallbackContext *cbc, const Camera *camera) {
+void updateGizmo(Gizmo *gizmo, Window *window, const CallbackContext *cbc, const Camera *camera) {
     static int draging = 0;
     static Gizmo *dragingGizmo = NULL;
-    int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-    if (state == GLFW_PRESS) {
+    if (isLeftMouseDown(window)) {
         Vec2 mousePos = screenToWorldSpace(cbc->mousePos, camera->pixelsPerUnit, cbc->screenSize, camera->pos);
         if(pointInRect(gizmo->rect, mousePos)) {
             draging = 1;

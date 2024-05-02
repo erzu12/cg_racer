@@ -3,6 +3,7 @@
 #include <2dGraphics.h>
 
 #include "game.h"
+#include "window.h"
 
 typedef struct Player {
     Vec2 pos;
@@ -17,4 +18,4 @@ typedef struct Player {
 } Player;
 
 Player *createPlayer(Vec2 pos, float rot);
-void updatePlayer(GLFWwindow *window, Player *player, const Game *game);
+void updatePlayer(Window *window, Player *player, const Game *game);

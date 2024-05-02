@@ -1,4 +1,5 @@
 #include "2dGraphics.h"
+#include <GLFW/glfw3.h>
 
 Rectangle *newRectangle(unsigned int shader) {
     float vertices[] = {
@@ -146,6 +147,10 @@ ParticleSys *newParticleSys(int maxParticles, Image *image, Vec2 pos, float init
 
 void spawnParticle(ParticleSys* particleSys, float lifeTime) {
     //Particle *particle = malloc(sizeof(Particle));
+    if (particleSys == NULL) {
+        printf("particleSys is NULL\n");
+        return;
+    }
 
     if(particleSys->particleCount < particleSys->maxParticles) {
         Particle particle;
