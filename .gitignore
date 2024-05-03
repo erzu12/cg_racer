@@ -3,3 +3,7 @@ build/
 compile_commands.json
 */target/
 .cache/
+*.info
+out/
+Testing/ 
+vgcore.*

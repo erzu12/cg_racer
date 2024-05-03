@@ -24,5 +24,5 @@ cd ../..
 printf "\n\n=============================================================================\n\n"
 
 
-./build/src/spaceracer
+# ./build/src/spaceracer
 #mangohud --dlsym build/spaceracer

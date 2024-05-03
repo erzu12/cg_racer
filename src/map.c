@@ -95,7 +95,6 @@ void updateGizmo(Gizmo *gizmo, Window *window, const CallbackContext *cbc, const
 }
 
 void drawGizmo(Gizmo *gizmo, float *viewMat, unsigned int shader) {
-
     drawRectangle(gizmo->rect, viewMat);
     drawRectangle(gizmo->rectHandle1, viewMat);
     drawRectangle(gizmo->rectHandle2, viewMat);

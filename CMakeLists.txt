@@ -16,6 +16,7 @@ add_subdirectory(extern/glad)
 set(CMAKE_BUILD_TYPE Debug)
 
 add_subdirectory(hfg)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -fprofile-arcs --coverage")
 add_subdirectory(src)
 
 if(TARGET_GROUP STREQUAL release) 
@@ -23,6 +24,7 @@ if(TARGET_GROUP STREQUAL release)
     # it's really handy to put it here.  
 elseif(TARGET_GROUP STREQUAL test) 
     # It also needs to understand we have code in source and test directories  
+
     add_subdirectory(test)  
 else()    
     message(FATAL_ERROR "I don't know the TARGET_GROUP you gave me!") 
