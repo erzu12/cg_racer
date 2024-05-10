@@ -127,6 +127,22 @@ void testScreenSpaceToWorldSpace(void) {
     TEST_ASSERT_EQUAL(0.0f, result.y);
 }
 
+void testGizmoArrToPath(void) {
+    Gizmo gizmos[4];
+    newRectangle_IgnoreAndReturn(malloc(sizeof(Rectangle)));
+    createGizmos(gizmos, 0);
+    Vec2 *points = gizmoArrToPath(gizmos, 4, 10, NULL);
+    TEST_ASSERT_EQUAL(0.0f, points[0].x);
+    TEST_ASSERT_EQUAL(5.0f, points[0].y);
+    TEST_ASSERT_EQUAL(-5.0f, points[10].x);
+    TEST_ASSERT_EQUAL(0.0f, points[10].y);
+    TEST_ASSERT_EQUAL(0.0f, points[20].x);
+    TEST_ASSERT_EQUAL(-5.0f, points[20].y);
+    TEST_ASSERT_EQUAL(5.0f, points[30].x);
+    TEST_ASSERT_EQUAL(0.0f, points[30].y);
+    free(points);
+}
+
 void testDrawGizmo(void) {
     float viewMatrix[16];
     translationMatrix(vec2zero(), viewMatrix);
@@ -152,7 +168,6 @@ void testDrawGizmo(void) {
     drawLine_Expect(line1, viewMatrix);
     drawLine_Expect(line1, viewMatrix);
     drawGizmo(&gizmo, viewMatrix, shader);
-
 }
 
 
@@ -164,6 +179,7 @@ int main(void) {
     RUN_TEST(testUpdateGizmo);
     RUN_TEST(testUpdateGizmoHandle1);
     RUN_TEST(testUpdateGizmoHandle2);
+    RUN_TEST(testGizmoArrToPath);
     RUN_TEST(testScreenSpaceToWorldSpace);
     testDrawGizmo();
     return UNITY_END();

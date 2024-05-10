@@ -10,13 +10,12 @@
 #include "player.h"
 #include "game.h"
 #include "map.h"
+#include "input.h"
 
 
 int spaceracer();
 
 void framebuffer_size_callback(Window* window, int width, int height);
-void processInput(Window *window);
-void mouse_callback(Window *window, double posX, double posY);
 
 bool createGlfwWindow(Window **window, int width, int height, const char *title);
 

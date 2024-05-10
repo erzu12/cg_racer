@@ -85,6 +85,7 @@ ParticleSys *createParticleSys(Vec2 pos, Vec2 initalVel, const char *smokePath) 
 
 
 //still way to long
+// One does not simply refactor this cursed code
 void loop(Window *window,
         Game *game,
         Player *player,
@@ -186,18 +187,6 @@ void loop(Window *window,
 
         endFrame(window);
     }
-}
-
-void processInput(Window *window)
-{
-    if(isEscKeyDown(window))
-        setWindowShouldClose(window, true);
-}
-
-void mouse_callback(Window *window, double posX, double posY){
-    struct CallbackContext *cbc = (struct CallbackContext *)windowGetUserPointer(window);
-    cbc->mousePos.x = (float)posX;
-    cbc->mousePos.y = (float)posY;
 }
 
 void framebuffer_size_callback(Window* window, int width, int height)
