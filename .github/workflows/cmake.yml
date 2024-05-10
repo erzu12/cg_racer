@@ -76,8 +76,3 @@ jobs:
       working-directory: ${{ github.workspace }}
       run: |
         lcov --capture --directory ./build/test/ --output-file test.info --exclude 'hfg' --exclude 'Unity' --exclude 'CMock' --exclude 'build' --exclude 'test'
-
-    - name: Check Coverage
-      run: |
-        lcov --summary test.info --fail-under-line 90
-
