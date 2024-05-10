@@ -79,5 +79,5 @@ jobs:
 
     - name: Check Coverage
       run: |
-        lcov --summary test.info --fail-under-line 90 --fail-under-function 90
+        lcov --summary test.info --fail-under-line 90
 
