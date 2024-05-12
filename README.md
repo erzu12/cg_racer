@@ -1,3 +1,5 @@
+[![CMake](https://github.com/erzu12/cg_racer/actions/workflows/cmake.yml/badge.svg)](https://github.com/erzu12/cg_racer/actions/workflows/cmake.yml)
+
 # CG Racer
 
 CG Racer is a project created for the module Computer Graphics at HSLU.
