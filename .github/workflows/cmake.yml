@@ -76,3 +76,21 @@ jobs:
       working-directory: ${{ github.workspace }}
       run: |
         lcov --capture --directory ./build/test/ --output-file test.info --exclude 'hfg' --exclude 'Unity' --exclude 'CMock' --exclude 'build' --exclude 'test'
+        name: generate plantuml
+
+  generate_plantuml:
+    runs-on: ubuntu-latest
+    name: plantuml
+    steps:
+    - name: checkout
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
+    - name: plantuml
+      id: plantuml
+      uses: grassedge/generate-plantuml-action@v1.5
+      with:
+        path: example
+        message: "Render PlantUML files"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

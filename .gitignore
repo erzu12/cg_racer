@@ -7,6 +7,6 @@ compile_commands.json
 out/
 Testing/ 
 vgcore.*
-Docs/**
 .gdb_history
 \\
+*.svg

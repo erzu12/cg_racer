@@ -6,9 +6,7 @@
 #include <2dMath.h>
 #include <2dGraphics.h>
 
-#include "window.h"
 #include "player.h"
-#include "game.h"
 #include "map.h"
 #include "input.h"
 

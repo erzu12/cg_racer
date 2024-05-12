@@ -1,0 +1,34 @@
+@startuml
+
+package "CG Racer" {
+  [spaceracer]
+  [window]
+  [input]
+  [player]
+  [game]
+  [map]
+}
+
+[GLFW]
+
+[OPENGL]
+
+[spaceracer] --> [player]
+[spaceracer] --> [map]
+[spaceracer] --> [input]
+
+[spaceracer] --> [OPENGL]
+
+
+[input] --> [window]
+[window] --> [GLFW]
+
+[player] --> [game]
+[player] --> [window]
+
+[map] --> [game]
+[map] --> [window]
+
+
+@enduml
+
