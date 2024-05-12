@@ -10,8 +10,8 @@ bool createGlfwWindow(Window *window, int width, int height, const char *title) 
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 #ifdef __APPLE__
@@ -57,6 +57,7 @@ Window *createWindow(int width, int height, const char *title) {
     if (!createGlfwWindow(window, width, height, title)) {
         return NULL;
     }
+    printf("running with version: %s\n", glGetString(GL_VERSION));
     return window;
 }
 

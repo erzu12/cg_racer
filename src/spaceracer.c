@@ -19,6 +19,7 @@ int spaceracer()
     if(window == NULL) {
         return -1;
     }
+
     glEnable( GL_DEBUG_OUTPUT );
     glDebugMessageCallback( openglMessageCallback, 0 );
     glEnable(GL_BLEND);

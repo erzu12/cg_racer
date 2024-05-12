@@ -8,3 +8,5 @@ out/
 Testing/ 
 vgcore.*
 Docs/**
+.gdb_history
+\\
