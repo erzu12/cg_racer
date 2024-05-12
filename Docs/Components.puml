@@ -11,14 +11,15 @@ package "CG Racer" {
 
 [GLFW]
 
-[OPENGL]
+[OpenGl]
 
 [spaceracer] --> [player]
 [spaceracer] --> [map]
 [spaceracer] --> [input]
 
-[spaceracer] --> [OPENGL]
+[spaceracer] --> [OpenGl]
 
+[window] --> [OpenGl]
 
 [input] --> [window]
 [window] --> [GLFW]

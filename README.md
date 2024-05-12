@@ -52,8 +52,20 @@ cd build/test
 ctest --output-on-failure
 ```
 
-## Overview
+## Play 
 
-This is an overview of all the components and how they connect:
+Create a track with the red gizmos, then press `Tab` to play.
+
+### Controls
+
+- Main thruster: `space`
+- Rotate: `←` `→`
+- RCS thrusters: `W` `A` `S` `D`
+- Back to edit mode: `Tab`
+
+## Architecture
+
+Spaceracer is the entrypoint and creates all necessary components, including the map to play on and the player itself. It also sets some OpenGL options not related to the window.
+The Input module handles all non-player inputs, and Game stores the current state of the game. Widow is an abstraction layer for the GLFW windowing library, which creates a window and attaches an OpenGL context.
 
 ![overview](Docs/Components.svg)
