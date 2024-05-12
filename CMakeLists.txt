@@ -10,7 +10,7 @@ project(spaceracer)
 # We declare a variable to select what to build 
 set (TARGET_GROUP production CACHE STRING "What Should I Build?")  # Modules that exist in both our release and our unit tests, are added now   
 
-# add_subdirectory(extern/glfw)
+add_subdirectory(extern/glfw)
 add_subdirectory(extern/glad)
 
 set(CMAKE_BUILD_TYPE Debug)
