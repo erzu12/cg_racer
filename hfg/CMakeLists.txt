@@ -17,8 +17,8 @@ set_property(TARGET "${PROJECT_NAME}" PROPERTY C_STANDARD 11)
 set_target_properties("${PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
 
 target_include_directories("${PROJECT_NAME}"
-	PUBLIC ${CMAKE_SOURCE_DIR}/external/glad/includes
-	PUBLIC ${CMAKE_SOURCE_DIR}/external/glfw/includes
+	PUBLIC ${CMAKE_SOURCE_DIR}/extern/glad/include
+	PUBLIC ${CMAKE_SOURCE_DIR}/extern/glfw/include
     PUBLIC ${PROJECT_SOURCE_DIR}/extern/stb
     PUBLIC ${CMAKE_SOURCE_DIR}/hfg
 	PUBLIC ${CMAKE_SOURCE_DIR}/
