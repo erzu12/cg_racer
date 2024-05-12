@@ -30,17 +30,3 @@ else()
     message(FATAL_ERROR "I don't know the TARGET_GROUP you gave me!") 
 endif()
 
-
-option(BUILD_DOC "Build documentation" ON)
-
-find_package(Doxygen)
-if(DOXYGEN_FOUND)
-    doxygen_add_docs(
-        doc
-        ${CMAKE_SOURCE_DIR}
-        COMMENT "Generate doxygen documentation"
-        Doxyfile
-    )
-else(DOXYGEN_FOUND)
-        message("Doxygen needs to be installed to generate the doxygen documentation")
-endif(DOXYGEN_FOUND)
