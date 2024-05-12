@@ -14,7 +14,7 @@ In the module SWAT, it is being refactored.
 
 ## Build
 
-Make sure you have `gcc`, `glfw`, and `OpenGL` installed.
+Make sure you have `gcc`, `glfw`, and `CMake` installed.
 Then you can run:
 
 Configure
