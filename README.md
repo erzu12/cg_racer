@@ -7,10 +7,9 @@
 
 # CG Racer
 
-CG Racer is a project created for the module Computer Graphics at HSLU.
-It allows you to create a simple racecourse with Bezier curves and race on it.
+CG Racer is a project developed for the Computer Graphics module at HSLU. It allows you to create a simple racecourse using Bezier curves and race on it.
 
-In the module SWAT, it is being refactored.
+The project is currently being refactored as part of the SWAT module.
 
 ## Build
 
