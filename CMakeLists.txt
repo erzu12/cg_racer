@@ -1,18 +1,23 @@
 cmake_minimum_required(VERSION 3.16.2)
 
-project(spaceracer)
+project(gl_gui)
 
 add_subdirectory(hfg)
 
 add_subdirectory(extern/glfw)
 add_subdirectory(extern/glad)
 
-
-add_executable("${PROJECT_NAME}"
-    "spaceracer.c"
+file(GLOB src
+    "src/*.cpp"
+    "src/*.h"
 )
 
-set_property(TARGET "${PROJECT_NAME}" PROPERTY C_STANDARD 11)
+add_executable("${PROJECT_NAME}"
+    ${src}
+)
+
+set_property(TARGET "${PROJECT_NAME}" PROPERTY CPP_STANDARD 17)
+set(CMAKE_BUILD_TYPE Debug)
 
 target_link_libraries("${PROJECT_NAME}"
 	glad
